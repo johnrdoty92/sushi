@@ -1,5 +1,14 @@
 {
   "packages": {
+    "frontend": {
+      "changelog-path": "CHANGELOG.md",
+      "release-type": "node",
+      "bump-minor-pre-major": false,
+      "bump-patch-for-minor-pre-major": false,
+      "draft": false,
+      "prerelease": false,
+      "separate-pull-requests": true
+    },
     "server": {
       "package-name": "sushi-api",
       "changelog-path": "server/CHANGELOG.md",
@@ -7,7 +16,9 @@
       "bump-minor-pre-major": false,
       "bump-patch-for-minor-pre-major": false,
       "draft": false,
-      "prerelease": false
+      "prerelease": false,
+      "tag-separator": "/",
+      "separate-pull-requests": true
     }
   },
   "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json"
