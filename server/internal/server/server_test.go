@@ -12,15 +12,18 @@ func TestCreateGame(t *testing.T) {
 	t.Run("should create game entry", func(t *testing.T) {
 		url, close := setupServer(t)
 		defer close()
+
 		request, _ := http.NewRequest(http.MethodPost, url+"/rooms", nil)
 		response, err := http.DefaultClient.Do(request)
 		if err != nil {
 			t.Fatal(err)
 		}
+
 		defer response.Body.Close()
 		if response.StatusCode != http.StatusCreated {
 			t.Errorf("got %v status, want %v", response.StatusCode, http.StatusCreated)
 		}
+
 		slugBytes, err := io.ReadAll(response.Body)
 		if err != nil {
 			t.Fatal(err)
