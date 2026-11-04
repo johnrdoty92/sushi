@@ -26,9 +26,9 @@ func run(ctx context.Context) error {
 	signalCtx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
-	handler := server.NewServer()
+	gameServer := server.NewGameServer()
 	httpServer := &http.Server{
-		Handler: handler,
+		Handler: &gameServer.Mux,
 		Addr:    net.JoinHostPort(os.Getenv("HOST"), os.Getenv("PORT")),
 	}
 	go func() {
