@@ -14,21 +14,22 @@ type GameServer struct {
 	RoomManager rooms.RoomManager
 }
 
+func (gs *GameServer) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
+	slug, err := gs.RoomManager.Create()
+	if err != nil {
+		gs.logf("Error creating room: %v", err)
+		http.Error(w, "Failed to create room. Please try again.", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	fmt.Fprint(w, slug)
+}
+
 func NewGameServer() *GameServer {
 	gs := &GameServer{
 		logf:        log.Printf,
 		RoomManager: *rooms.NewRoomManager(),
 	}
-	// TODO: move handlers to gs struct
-	gs.Mux.HandleFunc("POST /rooms", func(w http.ResponseWriter, r *http.Request) {
-		slug, err := gs.RoomManager.Create()
-		if err != nil {
-			gs.logf("Error creating room: %v", err)
-			http.Error(w, "Failed to create room. Please try again.", http.StatusInternalServerError)
-			return
-		}
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprint(w, slug)
-	})
+	gs.Mux.HandleFunc("POST /rooms", gs.handleCreateRoom)
 	return gs
 }
