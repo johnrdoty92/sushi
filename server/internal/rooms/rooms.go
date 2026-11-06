@@ -1,19 +1,26 @@
 package rooms
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/sio/coolname"
 )
 
-const maxSlugAttempts = 10
-const defaultMessageBuffer = 16
+const (
+	maxSlugAttempts      = 10
+	defaultMessageBuffer = 16
+)
+
+var (
+	ErrRoomNotFound = errors.New("room does not exist")
+)
 
 type Subscriber struct {
-	Name      string
-	Messages  chan []byte
-	CloseSlow func()
+	Name                string
+	Messages            chan []byte
+	CloseSlowConnection func()
 }
 
 type items struct{}
@@ -33,11 +40,11 @@ func NewRoom() *Room {
 	}
 }
 
-func (r *Room) AddSubscriber(name string) *Subscriber {
+func (r *Room) AddSubscriber(name string, handleSlowConnection func()) *Subscriber {
 	sub := &Subscriber{
-		Name:      name,
-		Messages:  make(chan []byte, r.buffer),
-		CloseSlow: func() {},
+		Name:                name,
+		Messages:            make(chan []byte, r.buffer),
+		CloseSlowConnection: handleSlowConnection,
 	}
 	r.mu.Lock()
 	r.subscribers[sub] = struct{}{}
@@ -52,7 +59,7 @@ func (r *Room) Publish(message []byte) {
 		select {
 		case s.Messages <- message:
 		default:
-			s.CloseSlow()
+			s.CloseSlowConnection()
 		}
 	}
 }
@@ -84,4 +91,14 @@ func (rm *RoomManager) Create() (slug string, err error) {
 		return slug, nil
 	}
 	return "", fmt.Errorf("No unique slug after %d attempts", maxSlugAttempts)
+}
+
+func (rm *RoomManager) Get(slug string) (*Room, error) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	room, ok := rm.rooms[slug]
+	if !ok {
+		return nil, ErrRoomNotFound
+	}
+	return room, nil
 }
