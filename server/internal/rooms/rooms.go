@@ -75,6 +75,10 @@ func (r *Room) AddSubscriber(name string, handleSlowConnection func()) *Subscrib
 	return sub
 }
 
+func (r *Room) RemoveSubscriber(subscriber *Subscriber) {
+	delete(r.subscribers, subscriber)
+}
+
 func (r *Room) Publish(message []byte) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
