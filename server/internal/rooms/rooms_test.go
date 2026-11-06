@@ -86,7 +86,9 @@ func TestRoom_Run(t *testing.T) {
 				Id:       sub.Id,
 				Name:     sub.Name,
 				Position: Position{X: 0, Y: 0},
-			}}}
+			}},
+			TimeRemaining: -1,
+		}
 		if !reflect.DeepEqual(received, want) {
 			t.Fatalf("got %+v, want %+v", received, want)
 		}
@@ -137,4 +139,75 @@ func TestRoom_UpdatePlayerPosition(t *testing.T) {
 			t.Fatalf("got %v, want %v", sub.position, want)
 		}
 	})
+}
+
+func TestRoom_Start(t *testing.T) {
+	t.Run("should display -1 for game not started and time remaining otherwise", func(t *testing.T) {
+
+		room := NewRoom()
+		sub := room.AddSubscriber("Alice", func() {})
+		ctx, cancel := context.WithCancel(t.Context())
+
+		ticks := make(chan time.Time, 3)
+		errc := make(chan error, 1)
+
+		go func() {
+			errc <- room.Run(ctx, ticks)
+		}()
+
+		ticks <- time.Now()
+		roomState := awaitState(t, sub.Messages)
+		want := -1
+		if roomState.TimeRemaining != want {
+			t.Fatalf("got %v, want %v", roomState.TimeRemaining, want)
+		}
+
+		room.Start(time.Millisecond * 10)
+		from := room.endTime
+		ticks <- from.Add(time.Millisecond * -5)
+		roomState = awaitState(t, sub.Messages)
+		if roomState.TimeRemaining <= 0 {
+			t.Fatalf("got %v, wanted something more than 0", roomState.TimeRemaining)
+		}
+
+		ticks <- from.Add(time.Millisecond * 20)
+		roomState = awaitState(t, sub.Messages)
+		want = 0
+		if roomState.TimeRemaining != want {
+			t.Fatalf("got %v, want %v", roomState.TimeRemaining, want)
+		}
+
+		cancel()
+		if err := <-errc; err != nil {
+			t.Fatalf("room.Run: %v", err)
+		}
+	})
+
+	t.Run("should fail if already started", func(t *testing.T) {
+		room := NewRoom()
+		err := room.Start(time.Millisecond * 100)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		err = room.Start(time.Millisecond * 100)
+		if err == nil {
+			t.Fatal("should fail to start a second time if time is left on the clock")
+		}
+	})
+}
+
+func awaitState(t *testing.T, messages chan []byte) *RoomState {
+	t.Helper()
+	select {
+	case message := <-messages:
+		var state RoomState
+		if err := json.Unmarshal(message, &state); err != nil {
+			t.Fatalf("failed to unmarshal: %v", err)
+		}
+		return &state
+	case <-time.After(time.Second):
+		t.Fatal("timed out: subscriber did not receive message")
+		return nil
+	}
 }
