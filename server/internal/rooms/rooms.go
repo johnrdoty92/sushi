@@ -18,7 +18,8 @@ const (
 )
 
 var (
-	ErrRoomNotFound = errors.New("room does not exist")
+	ErrRoomNotFound   = errors.New("room does not exist")
+	ErrPlayerNotFound = errors.New("player does not exist")
 )
 
 type Position struct {
@@ -89,6 +90,17 @@ func (r *Room) Publish(message []byte) {
 			s.CloseSlowConnection()
 		}
 	}
+}
+
+func (r *Room) UpdatePlayerPosition(id string, x float64, y float64) error {
+	for s := range r.subscribers {
+		if s.Id == id {
+			s.position.X = max(min(x, 1), -1)
+			s.position.Y = max(min(y, 1), -1)
+			return nil
+		}
+	}
+	return ErrPlayerNotFound
 }
 
 func (r *Room) Run(ctx context.Context, ticks <-chan time.Time) error {

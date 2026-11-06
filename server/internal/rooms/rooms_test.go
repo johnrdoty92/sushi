@@ -99,3 +99,42 @@ func TestRoom_Run(t *testing.T) {
 		t.Fatalf("room.Run: %v", err)
 	}
 }
+
+func TestRoom_UpdatePlayerPosition(t *testing.T) {
+	t.Run("should fail if player doesn't exist", func(t *testing.T) {
+		room := NewRoom()
+		err := room.UpdatePlayerPosition("non-existant id", 1, 1)
+		if err == nil {
+			t.Errorf("expected to get error, but didn't")
+		}
+	})
+	t.Run("should update player position but clamp to -1 and 1", func(t *testing.T) {
+		room := NewRoom()
+		sub := room.AddSubscriber("Alice", func() {})
+		err := room.UpdatePlayerPosition(sub.Id, 1, 1)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		want := Position{X: 1, Y: 1}
+		if sub.position != want {
+			t.Fatalf("got %v, want %v", sub.position, want)
+		}
+		err = room.UpdatePlayerPosition(sub.Id, 2, 2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sub.position != want {
+			t.Fatalf("got %v, want %v", sub.position, want)
+		}
+
+		err = room.UpdatePlayerPosition(sub.Id, -2, -2)
+		want = Position{X: -1, Y: -1}
+		if err != nil {
+			t.Fatal(err)
+		}
+		if sub.position != want {
+			t.Fatalf("got %v, want %v", sub.position, want)
+		}
+	})
+}
