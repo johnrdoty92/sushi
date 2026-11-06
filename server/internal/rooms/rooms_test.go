@@ -20,6 +20,37 @@ func TestRoomManager_Create(t *testing.T) {
 	}
 }
 
+func TestRoom_AddSubscriber(t *testing.T) {
+	room := NewRoom()
+	got := len(room.subscribers)
+	want := 0
+	if got != want {
+		t.Fatalf("wanted %d, got %d", want, got)
+	}
+	room.AddSubscriber("Alice", func() {})
+	got = len(room.subscribers)
+	want = 1
+	if got != want {
+		t.Fatalf("wanted %d, got %d", want, got)
+	}
+}
+
+func TestRoom_RemoveSubscriber(t *testing.T) {
+	room := NewRoom()
+	sub := room.AddSubscriber("Alice", func() {})
+	got := len(room.subscribers)
+	want := 1
+	if got != want {
+		t.Fatalf("wanted %d, got %d", want, got)
+	}
+	room.RemoveSubscriber(sub)
+	got = len(room.subscribers)
+	want = 0
+	if got != want {
+		t.Fatalf("wanted %d, got %d", want, got)
+	}
+}
+
 func TestRoom_Publish(t *testing.T) {
 	room := NewRoom()
 	sub := room.AddSubscriber("Alice", func() {})
