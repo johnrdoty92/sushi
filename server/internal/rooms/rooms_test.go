@@ -18,12 +18,11 @@ func TestCreate(t *testing.T) {
 
 func TestRoom(t *testing.T) {
 	room := NewRoom()
-	sub := room.AddSubscriber("Alice")
+	sub := room.AddSubscriber("Alice", func() {})
 	message := "some message"
 	go room.Publish([]byte(message))
 	received := string(<-sub.Messages)
 	if received != message {
 		t.Errorf("got %s, want %s", received, message)
 	}
-
 }
