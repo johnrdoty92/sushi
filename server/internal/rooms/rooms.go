@@ -18,8 +18,9 @@ const (
 )
 
 var (
-	ErrRoomNotFound   = errors.New("room does not exist")
-	ErrPlayerNotFound = errors.New("player does not exist")
+	ErrRoomNotFound       = errors.New("room does not exist")
+	ErrPlayerNotFound     = errors.New("player does not exist")
+	ErrGameAlreadyStarted = errors.New("game already started")
 )
 
 type Position struct {
@@ -34,7 +35,8 @@ type SubscriberState struct {
 }
 
 type RoomState struct {
-	Subscribers []SubscriberState `json:"subscribers"`
+	Subscribers   []SubscriberState `json:"subscribers"`
+	TimeRemaining int               `json:"timeRemaining"`
 }
 
 type Subscriber struct {
@@ -52,6 +54,7 @@ type Room struct {
 	subscribers map[*Subscriber]struct{}
 	items       map[*items]struct{}
 	buffer      int
+	endTime     time.Time
 }
 
 func NewRoom() *Room {
@@ -106,8 +109,8 @@ func (r *Room) UpdatePlayerPosition(id string, x float64, y float64) error {
 func (r *Room) Run(ctx context.Context, ticks <-chan time.Time) error {
 	for {
 		select {
-		case <-ticks:
-			payload, err := json.Marshal(r.Snapshot())
+		case now := <-ticks:
+			payload, err := json.Marshal(r.Snapshot(now))
 			if err != nil {
 				return err
 			}
@@ -120,7 +123,15 @@ func (r *Room) Run(ctx context.Context, ticks <-chan time.Time) error {
 	}
 }
 
-func (r *Room) Snapshot() RoomState {
+func (r *Room) Start(gameDuration time.Duration) error {
+	if !r.endTime.IsZero() {
+		return ErrGameAlreadyStarted
+	}
+	r.endTime = time.Now().Add(gameDuration)
+	return nil
+}
+
+func (r *Room) Snapshot(tick time.Time) RoomState {
 	subscribers := make([]SubscriberState, 0)
 	for s := range r.subscribers {
 		subscribers = append(subscribers, SubscriberState{
@@ -130,8 +141,16 @@ func (r *Room) Snapshot() RoomState {
 		})
 	}
 	return RoomState{
-		Subscribers: subscribers,
+		Subscribers:   subscribers,
+		TimeRemaining: r.getTimeRemaining(tick),
 	}
+}
+
+func (r *Room) getTimeRemaining(tick time.Time) int {
+	if r.endTime.IsZero() {
+		return -1
+	}
+	return max(int(r.endTime.Sub(tick).Milliseconds()), 0)
 }
 
 type RoomManager struct {
