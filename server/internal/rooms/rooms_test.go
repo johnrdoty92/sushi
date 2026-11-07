@@ -252,6 +252,53 @@ func TestRoom_Start(t *testing.T) {
 	})
 }
 
+func TestRoom_ClaimItem(t *testing.T) {
+	room := NewRoom()
+	room.itemSpawnInterval = 10
+	room.gameDuration = time.Millisecond * 100
+	now := time.Now()
+	room.now = func() time.Time { return now }
+	sub1 := room.AddSubscriber("Alice", func() {})
+	sub2 := room.AddSubscriber("Bob", func() {})
+
+	err := room.ClaimItem("non-existant-player-id", "")
+	if err == nil {
+		t.Fatal("expected error for non-existant player id")
+	}
+
+	err = room.ClaimItem(sub1.Id, "")
+	if err == nil {
+		t.Fatal("expected error for game not started")
+	}
+
+	err = room.Start()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = room.ClaimItem(sub1.Id, "non-existant-item-id")
+	if err == nil {
+		t.Fatal("expected error for non-existant item id")
+	}
+
+	lastItem := room.items[len(room.items)-1]
+	err = room.ClaimItem(sub1.Id, lastItem.Id)
+	if err == nil {
+		t.Fatal("expected error for item not yet visible")
+	}
+
+	now = room.items[0].visibleAt
+	err = room.ClaimItem(sub1.Id, room.items[0].Id)
+	if err != nil {
+		t.Fatalf("unexpectedly failed to claim item: %v", err)
+	}
+
+	err = room.ClaimItem(sub2.Id, room.items[0].Id)
+	if err == nil {
+		t.Fatal("expected error for item already claimed")
+	}
+}
+
 func awaitState(t *testing.T, messages chan []byte) *RoomState {
 	t.Helper()
 	select {
