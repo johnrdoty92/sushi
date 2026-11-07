@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math/rand/v2"
 	"sync"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 const (
 	maxSlugAttempts      = 10
 	defaultMessageBuffer = 16
+	itemSpawnIntervalMs  = 3000
+	gameDuration         = time.Minute * 2
 )
 
 var (
@@ -34,8 +37,16 @@ type SubscriberState struct {
 	Position Position `json:"position"`
 }
 
+type ItemState struct {
+	Id       string   `json:"id"`
+	OwnerId  string   `json:"ownerId"`
+	Position Position `json:"position"`
+	Visible  bool     `json:"visible"`
+}
+
 type RoomState struct {
 	Subscribers   []SubscriberState `json:"subscribers"`
+	Items         []ItemState       `json:"items"`
 	TimeRemaining int               `json:"timeRemaining"`
 }
 
@@ -47,21 +58,29 @@ type Subscriber struct {
 	position            Position
 }
 
-type items struct{}
+type item struct {
+	Id       string
+	OwnerId  string
+	position Position
+}
 
 type Room struct {
-	mu          sync.Mutex
-	subscribers map[*Subscriber]struct{}
-	items       map[*items]struct{}
-	buffer      int
-	endTime     time.Time
+	mu                sync.Mutex
+	subscribers       map[*Subscriber]struct{}
+	items             []item
+	buffer            int
+	endTime           time.Time
+	itemSpawnInterval int
+	gameDuration      time.Duration
 }
 
 func NewRoom() *Room {
 	return &Room{
-		subscribers: make(map[*Subscriber]struct{}),
-		items:       make(map[*items]struct{}),
-		buffer:      defaultMessageBuffer,
+		subscribers:       make(map[*Subscriber]struct{}),
+		items:             make([]item, 0),
+		buffer:            defaultMessageBuffer,
+		itemSpawnInterval: itemSpawnIntervalMs,
+		gameDuration:      gameDuration,
 	}
 }
 
@@ -123,11 +142,13 @@ func (r *Room) Run(ctx context.Context, ticks <-chan time.Time) error {
 	}
 }
 
-func (r *Room) Start(gameDuration time.Duration) error {
+func (r *Room) Start() error {
 	if !r.endTime.IsZero() {
 		return ErrGameAlreadyStarted
 	}
-	r.endTime = time.Now().Add(gameDuration)
+	r.endTime = time.Now().Add(r.gameDuration)
+	totalItemCount := int(r.gameDuration.Milliseconds()) / r.itemSpawnInterval
+	r.initializeItems(totalItemCount)
 	return nil
 }
 
@@ -140,9 +161,21 @@ func (r *Room) Snapshot(tick time.Time) RoomState {
 			Position: s.position,
 		})
 	}
+	timeRemaining := r.getTimeRemaining(tick)
+	items := make([]ItemState, len(r.items))
+	progress := float64(r.gameDuration.Milliseconds()-int64(timeRemaining)) / float64(r.gameDuration.Milliseconds())
+	for idx, item := range r.items {
+		items[idx] = ItemState{
+			Id:       item.Id,
+			OwnerId:  item.OwnerId,
+			Position: item.position,
+			Visible:  float64(idx+1)/float64(len(r.items)) <= float64(progress),
+		}
+	}
 	return RoomState{
 		Subscribers:   subscribers,
-		TimeRemaining: r.getTimeRemaining(tick),
+		Items:         items,
+		TimeRemaining: timeRemaining,
 	}
 }
 
@@ -151,6 +184,19 @@ func (r *Room) getTimeRemaining(tick time.Time) int {
 		return -1
 	}
 	return max(int(r.endTime.Sub(tick).Milliseconds()), 0)
+}
+
+func (r *Room) initializeItems(totalItemCount int) {
+	r.items = make([]item, totalItemCount)
+	for idx := range r.items {
+		item := &r.items[idx]
+		item.Id = uuid.NewString()
+		item.position = Position{X: randomCoordComponent(), Y: randomCoordComponent()}
+	}
+}
+
+func randomCoordComponent() float64 {
+	return rand.Float64()*2 - 1
 }
 
 type RoomManager struct {

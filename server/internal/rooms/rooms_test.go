@@ -87,6 +87,7 @@ func TestRoom_Run(t *testing.T) {
 				Name:     sub.Name,
 				Position: Position{X: 0, Y: 0},
 			}},
+			Items:         []ItemState{},
 			TimeRemaining: -1,
 		}
 		if !reflect.DeepEqual(received, want) {
@@ -143,8 +144,8 @@ func TestRoom_UpdatePlayerPosition(t *testing.T) {
 
 func TestRoom_Start(t *testing.T) {
 	t.Run("should display -1 for game not started and time remaining otherwise", func(t *testing.T) {
-
 		room := NewRoom()
+		room.gameDuration = time.Millisecond * 10
 		sub := room.AddSubscriber("Alice", func() {})
 		ctx, cancel := context.WithCancel(t.Context())
 
@@ -162,7 +163,7 @@ func TestRoom_Start(t *testing.T) {
 			t.Fatalf("got %v, want %v", roomState.TimeRemaining, want)
 		}
 
-		room.Start(time.Millisecond * 10)
+		room.Start()
 		from := room.endTime
 		ticks <- from.Add(time.Millisecond * -5)
 		roomState = awaitState(t, sub.Messages)
@@ -185,15 +186,69 @@ func TestRoom_Start(t *testing.T) {
 
 	t.Run("should fail if already started", func(t *testing.T) {
 		room := NewRoom()
-		err := room.Start(time.Millisecond * 100)
+		room.gameDuration = time.Millisecond * 100
+		err := room.Start()
 		if err != nil {
 			t.Fatal(err)
 		}
 
-		err = room.Start(time.Millisecond * 100)
+		err = room.Start()
 		if err == nil {
 			t.Fatal("should fail to start a second time if time is left on the clock")
 		}
+	})
+
+	t.Run("should initialize items", func(t *testing.T) {
+		room := NewRoom()
+		room.itemSpawnInterval = 10
+		room.gameDuration = time.Millisecond * 100
+		sub := room.AddSubscriber("Alice", func() {})
+		ctx, cancel := context.WithCancel(t.Context())
+
+		ticks := make(chan time.Time, 3)
+		errc := make(chan error, 1)
+
+		go func() {
+			errc <- room.Run(ctx, ticks)
+		}()
+
+		err := room.Start()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		expectedItemLength := int(room.gameDuration.Milliseconds()) / room.itemSpawnInterval
+		got := len(room.items)
+		if got != expectedItemLength {
+			t.Fatalf("got %v, want %v", got, expectedItemLength)
+		}
+
+		start := room.endTime.Add(room.gameDuration * -1)
+		halfway := room.endTime.Add(room.gameDuration / -2)
+		end := room.endTime
+		tests := []time.Time{start, halfway, end}
+		for idx, tick := range tests {
+			ticks <- tick
+			roomState := awaitState(t, sub.Messages)
+			if len(roomState.Items) != expectedItemLength {
+				t.Fatalf("got %v, want %v", len(roomState.Items), expectedItemLength)
+			}
+			for i, item := range roomState.Items {
+				expectedVisibility := (float64(i+1) / float64(len(roomState.Items))) <= (float64(tick.Sub(start).Milliseconds()) / float64(room.gameDuration.Milliseconds()))
+				if item.Visible != expectedVisibility {
+					t.Errorf("test %d: got %v want %v for item %d's visibility", idx, item.Visible, expectedVisibility, i)
+				}
+			}
+		}
+
+		cancel()
+		if err := <-errc; err != nil {
+			t.Fatalf("room.Run: %v", err)
+		}
+	})
+
+	t.Run("should mark all as visible by end of game", func(t *testing.T) {
+		//
 	})
 }
 
