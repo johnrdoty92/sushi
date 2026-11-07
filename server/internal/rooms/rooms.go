@@ -28,6 +28,7 @@ var (
 	ErrItemNotFound       = errors.New("item not found")
 	ErrItemAlreadyClaimed = errors.New("item already claimed")
 	ErrItemNotVisible     = errors.New("item not visible yet")
+	ErrGameAlreadyReset   = errors.New("game already reset")
 )
 
 type Position struct {
@@ -156,6 +157,18 @@ func (r *Room) Start() error {
 	r.endTime = r.now().Add(r.gameDuration)
 	totalItemCount := int(r.gameDuration.Milliseconds()) / r.itemSpawnInterval
 	r.initializeItems(totalItemCount)
+	return nil
+}
+
+func (r *Room) Reset() error {
+	if r.endTime.IsZero() {
+		return ErrGameAlreadyReset
+	}
+	if r.now().Before(r.endTime) {
+		return ErrGameAlreadyStarted
+	}
+	r.endTime = time.Time{}
+	r.items = make([]item, 0)
 	return nil
 }
 

@@ -3,6 +3,7 @@ package rooms
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"reflect"
 	"testing"
 	"time"
@@ -297,6 +298,82 @@ func TestRoom_ClaimItem(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for item already claimed")
 	}
+}
+
+func TestRoom_Reset(t *testing.T) {
+	t.Run("should fail if the room is already reset", func(t *testing.T) {
+		room := NewRoom()
+		err := room.Reset()
+		if !errors.Is(err, ErrGameAlreadyReset) {
+			t.Fatalf("got %v, want %v", err, ErrGameAlreadyReset)
+		}
+	})
+
+	t.Run("should fail while the game is in progress", func(t *testing.T) {
+		room := NewRoom()
+		now := time.Now()
+		room.now = func() time.Time { return now }
+		room.gameDuration = time.Second
+		room.itemSpawnInterval = 10
+		if err := room.Start(); err != nil {
+			t.Fatal(err)
+		}
+		itemsBefore := len(room.items)
+
+		now = room.endTime.Add(time.Millisecond * -1)
+		err := room.Reset()
+		if !errors.Is(err, ErrGameAlreadyStarted) {
+			t.Fatalf("got %v, want %v", err, ErrGameAlreadyStarted)
+		}
+		if room.endTime.IsZero() {
+			t.Fatal("reset cleared endTime while the game was still in progress")
+		}
+		if len(room.items) != itemsBefore {
+			t.Fatalf("reset cleared items while the game was still in progress: got %d, want %d", len(room.items), itemsBefore)
+		}
+	})
+
+	t.Run("should reset after the game ends and allow another start", func(t *testing.T) {
+		room := NewRoom()
+		now := time.Now()
+		room.now = func() time.Time { return now }
+		room.gameDuration = time.Second
+		room.itemSpawnInterval = 10
+		if err := room.Start(); err != nil {
+			t.Fatal(err)
+		}
+		itemsBefore := len(room.items)
+		oldItemId := room.items[0].Id
+
+		now = room.endTime
+		if err := room.Reset(); err != nil {
+			t.Fatal(err)
+		}
+		if !room.endTime.IsZero() {
+			t.Fatalf("got endTime %v, want zero time", room.endTime)
+		}
+		if len(room.items) != 0 {
+			t.Fatalf("got %d items after reset, want 0", len(room.items))
+		}
+		state := room.Snapshot(now)
+		if state.TimeRemaining != -1 || len(state.Items) != 0 {
+			t.Fatalf("got %+v after reset, want no items and -1 time remaining", state)
+		}
+
+		if err := room.Reset(); !errors.Is(err, ErrGameAlreadyReset) {
+			t.Fatalf("got %v, want %v", err, ErrGameAlreadyReset)
+		}
+
+		if err := room.Start(); err != nil {
+			t.Fatalf("Start after Reset: %v", err)
+		}
+		if len(room.items) != itemsBefore {
+			t.Fatalf("got %d items after restart, want %d", len(room.items), itemsBefore)
+		}
+		if room.items[0].Id == oldItemId {
+			t.Fatal("expected reset to generate new items")
+		}
+	})
 }
 
 func awaitState(t *testing.T, messages chan []byte) *RoomState {
