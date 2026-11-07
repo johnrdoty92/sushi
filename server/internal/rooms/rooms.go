@@ -24,6 +24,10 @@ var (
 	ErrRoomNotFound       = errors.New("room does not exist")
 	ErrPlayerNotFound     = errors.New("player does not exist")
 	ErrGameAlreadyStarted = errors.New("game already started")
+	ErrGameNotStarted     = errors.New("game not started")
+	ErrItemNotFound       = errors.New("item not found")
+	ErrItemAlreadyClaimed = errors.New("item already claimed")
+	ErrItemNotVisible     = errors.New("item not visible yet")
 )
 
 type Position struct {
@@ -59,9 +63,10 @@ type Subscriber struct {
 }
 
 type item struct {
-	Id       string
-	OwnerId  string
-	position Position
+	Id        string
+	OwnerId   string
+	position  Position
+	visibleAt time.Time
 }
 
 type Room struct {
@@ -72,6 +77,7 @@ type Room struct {
 	endTime           time.Time
 	itemSpawnInterval int
 	gameDuration      time.Duration
+	now               func() time.Time
 }
 
 func NewRoom() *Room {
@@ -81,6 +87,7 @@ func NewRoom() *Room {
 		buffer:            defaultMessageBuffer,
 		itemSpawnInterval: itemSpawnIntervalMs,
 		gameDuration:      gameDuration,
+		now:               time.Now,
 	}
 }
 
@@ -146,7 +153,7 @@ func (r *Room) Start() error {
 	if !r.endTime.IsZero() {
 		return ErrGameAlreadyStarted
 	}
-	r.endTime = time.Now().Add(r.gameDuration)
+	r.endTime = r.now().Add(r.gameDuration)
 	totalItemCount := int(r.gameDuration.Milliseconds()) / r.itemSpawnInterval
 	r.initializeItems(totalItemCount)
 	return nil
@@ -161,22 +168,48 @@ func (r *Room) Snapshot(tick time.Time) RoomState {
 			Position: s.position,
 		})
 	}
-	timeRemaining := r.getTimeRemaining(tick)
 	items := make([]ItemState, len(r.items))
-	progress := float64(r.gameDuration.Milliseconds()-int64(timeRemaining)) / float64(r.gameDuration.Milliseconds())
 	for idx, item := range r.items {
 		items[idx] = ItemState{
 			Id:       item.Id,
 			OwnerId:  item.OwnerId,
 			Position: item.position,
-			Visible:  float64(idx+1)/float64(len(r.items)) <= float64(progress),
+			Visible:  !tick.Before(item.visibleAt),
 		}
 	}
 	return RoomState{
 		Subscribers:   subscribers,
 		Items:         items,
-		TimeRemaining: timeRemaining,
+		TimeRemaining: r.getTimeRemaining(tick),
 	}
+}
+
+func (r *Room) ClaimItem(playerId string, itemId string) error {
+	for s := range r.subscribers {
+		if s.Id != playerId {
+			continue
+		}
+		if r.endTime.IsZero() {
+			return ErrGameNotStarted
+		}
+		for idx := range r.items {
+			item := &r.items[idx]
+			if item.Id != itemId {
+				continue
+			}
+			if r.now().Before(item.visibleAt) {
+				return ErrItemNotVisible
+			}
+			if item.OwnerId != "" {
+				return ErrItemAlreadyClaimed
+			}
+			item.OwnerId = playerId
+			return nil
+
+		}
+		return ErrItemNotFound
+	}
+	return ErrPlayerNotFound
 }
 
 func (r *Room) getTimeRemaining(tick time.Time) int {
@@ -192,6 +225,8 @@ func (r *Room) initializeItems(totalItemCount int) {
 		item := &r.items[idx]
 		item.Id = uuid.NewString()
 		item.position = Position{X: randomCoordComponent(), Y: randomCoordComponent()}
+		startTime := r.endTime.Add(r.gameDuration * -1)
+		item.visibleAt = startTime.Add(time.Duration(float64(r.gameDuration) * (float64(idx+1) / float64(totalItemCount))))
 	}
 }
 
