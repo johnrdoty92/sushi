@@ -18,6 +18,7 @@ const (
 	defaultMessageBuffer = 16
 	itemSpawnIntervalMs  = 3000
 	gameDuration         = time.Minute * 2
+	tickInterval         = time.Millisecond * 100
 )
 
 var (
@@ -79,6 +80,7 @@ type Room struct {
 	itemSpawnInterval int
 	gameDuration      time.Duration
 	now               func() time.Time
+	cleanup           func()
 }
 
 func NewRoom() *Room {
@@ -270,6 +272,20 @@ func (rm *RoomManager) Create() (slug string, err error) {
 		if _, isTaken := rm.rooms[slug]; isTaken {
 			continue
 		}
+		room := NewRoom()
+		ctx, cancel := context.WithCancel(context.Background())
+		ticker := time.NewTicker(tickInterval)
+		cleanup := func() {
+			cancel()
+			ticker.Stop()
+		}
+		room.cleanup = cleanup
+		go func() {
+			if err := room.Run(ctx, ticker.C); err != nil {
+				fmt.Printf("error occurred on room.Run: %v", err)
+			}
+
+		}()
 		rm.rooms[slug] = NewRoom()
 		return slug, nil
 	}

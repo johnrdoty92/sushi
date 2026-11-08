@@ -67,6 +67,7 @@ func TestRoom_Run(t *testing.T) {
 	room := NewRoom()
 	sub := room.AddSubscriber("Alice", func() {})
 	ctx, cancel := context.WithCancel(t.Context())
+	room.cleanup = cancel
 
 	ticks := make(chan time.Time, 1)
 	errc := make(chan error, 1)
@@ -98,7 +99,7 @@ func TestRoom_Run(t *testing.T) {
 		t.Fatal("timed out: subscriber did not receive message")
 	}
 
-	cancel()
+	room.cleanup()
 	if err := <-errc; err != nil {
 		t.Fatalf("room.Run: %v", err)
 	}
