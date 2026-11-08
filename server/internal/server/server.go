@@ -56,6 +56,59 @@ func (gs *GameServer) handleStartRoom(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
+func (gs *GameServer) handleResetRoom(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	room, err := gs.RoomManager.Get(slug)
+	if err != nil {
+		http.Error(w, "Failed to find room "+slug, http.StatusNotFound)
+		return
+	}
+
+	if err := room.Reset(); err != nil {
+		if errors.Is(err, rooms.ErrGameAlreadyReset) || errors.Is(err, rooms.ErrGameAlreadyStarted) {
+			http.Error(w, "Game cannot be reset", http.StatusBadRequest)
+			return
+		}
+		gs.logf("Error resetting game in room %s: %v", slug, err)
+		http.Error(w, "Failed to reset game. Please try again.", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (gs *GameServer) handleClaimItem(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	room, err := gs.RoomManager.Get(slug)
+	if err != nil {
+		http.Error(w, "Failed to find room "+slug, http.StatusNotFound)
+		return
+	}
+
+	var payload ClaimItemPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		http.Error(w, "Invalid claim", http.StatusBadRequest)
+		return
+	}
+
+	if err := room.ClaimItem(payload.PlayerId, payload.ItemId); err != nil {
+		switch {
+		case errors.Is(err, rooms.ErrPlayerNotFound), errors.Is(err, rooms.ErrItemNotFound):
+			http.Error(w, "Player or item not found", http.StatusNotFound)
+		case errors.Is(err, rooms.ErrItemAlreadyClaimed):
+			http.Error(w, "Item already claimed", http.StatusConflict)
+		case errors.Is(err, rooms.ErrGameNotStarted), errors.Is(err, rooms.ErrItemNotVisible):
+			http.Error(w, "Cannot claim item", http.StatusBadRequest)
+		default:
+			gs.logf("Error claiming item %s for player %s in room %s: %v", payload.ItemId, payload.PlayerId, slug, err)
+			http.Error(w, "Failed to claim item. Please try again.", http.StatusInternalServerError)
+		}
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (gs *GameServer) handleUpdatePlayer(w http.ResponseWriter, r *http.Request) {
 	slug := r.PathValue("slug")
 	room, err := gs.RoomManager.Get(slug)
@@ -111,8 +164,6 @@ func (gs *GameServer) handleJoinRoom(w http.ResponseWriter, r *http.Request) {
 	})
 	defer room.RemoveSubscriber(sub)
 
-	// TODO: https://github.com/coder/websocket/blob/4237924393c4cde6eef7bd02c26c285db8179142/internal/examples/chat/chat.go#L114
-
 	tempConn, err := websocket.Accept(w, r, nil) // TODO: need to supply options
 	if err != nil {
 		gs.logf("error accepting websocket connection: %v", err)
@@ -161,6 +212,8 @@ func NewGameServer() *GameServer {
 	}
 	gs.Mux.HandleFunc("POST /rooms", gs.handleCreateRoom)
 	gs.Mux.HandleFunc("POST /rooms/{slug}/start", gs.handleStartRoom)
+	gs.Mux.HandleFunc("POST /rooms/{slug}/reset", gs.handleResetRoom)
+	gs.Mux.HandleFunc("PATCH /rooms/{slug}/items", gs.handleClaimItem)
 	gs.Mux.HandleFunc("POST /rooms/{slug}/players", gs.handleUpdatePlayer)
 	gs.Mux.HandleFunc("GET /rooms/{slug}", gs.handleJoinRoom)
 	return gs

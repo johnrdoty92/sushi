@@ -261,6 +261,62 @@ func TestStartGame(t *testing.T) {
 	})
 }
 
+func TestResetGame(t *testing.T) {
+	t.Run("should only reset game once", func(t *testing.T) {
+		gs, _, url, slug, cl, close := setupJoinedServer(t)
+		defer close()
+
+		room, err := gs.RoomManager.Get(slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		room.SetTiming(50*time.Millisecond, 5*time.Millisecond)
+
+		request, err := http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/start", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusCreated {
+			t.Fatalf("got %d starting game, want %d", response.StatusCode, http.StatusCreated)
+		}
+
+		awaitPayload(t, cl, func(state rooms.RoomState) bool {
+			return state.TimeRemaining == 0 && len(state.Items) > 0
+		})
+
+		request, err = http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/reset", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err = http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusOK {
+			t.Fatalf("got %d resetting game, want %d", response.StatusCode, http.StatusOK)
+		}
+
+		request, err = http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/reset", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err = http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Fatalf("got %d resetting game a second time, want %d", response.StatusCode, http.StatusBadRequest)
+		}
+	})
+}
+
 func TestClaimItem(t *testing.T) {
 	t.Run("should claim an item only once", func(t *testing.T) {
 		gs, _, url, slug, cl, close := setupJoinedServer(t)
