@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -123,6 +124,143 @@ func TestJoinGame(t *testing.T) {
 	})
 }
 
+func TestUpdatePlayer(t *testing.T) {
+	t.Run("should update an existing player", func(t *testing.T) {
+		_, url, slug, cl, close := setupJoinedServer(t)
+		defer close()
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		_, message, err := cl.conn.Read(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		idPayload := decode[rooms.SubscriberId](t, message)
+
+		position := rooms.Position{X: 0.5, Y: -0.5}
+		body := encode(t, rooms.SubscriberState{
+			Id:       idPayload.Id,
+			Name:     "Alice",
+			Position: position,
+		})
+		request, err := http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/players", bytes.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode < 200 || response.StatusCode >= 300 {
+			t.Fatalf("got %d updating player, want a successful status", response.StatusCode)
+		}
+
+		awaitPayload(t, cl, func(state rooms.RoomState) bool {
+			for _, subscriber := range state.Subscribers {
+				if subscriber.Id == idPayload.Id && subscriber.Position == position {
+					return true
+				}
+			}
+			return false
+		})
+	})
+
+	t.Run("should fail for a player that doesn't exist", func(t *testing.T) {
+		_, url, slug, _, close := setupJoinedServer(t)
+		defer close()
+
+		body := encode(t, rooms.SubscriberState{
+			Id:       "non-existent-player-id",
+			Name:     "Nobody",
+			Position: rooms.Position{X: 0.5, Y: -0.5},
+		})
+		request, err := http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/players", bytes.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode >= 200 && response.StatusCode < 300 {
+			t.Fatalf("got %d updating a missing player, want a failing status", response.StatusCode)
+		}
+	})
+}
+
+func awaitPayload[T any](t *testing.T, cl *client, match func(T) bool) T {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	for {
+		_, message, err := cl.conn.Read(ctx)
+		if err != nil {
+			t.Fatalf("failed waiting for websocket message: %v", err)
+		}
+		payload := decode[T](t, message)
+		if match(payload) {
+			return payload
+		}
+	}
+}
+
+func encode[T any](t *testing.T, v T) []byte {
+	t.Helper()
+
+	data, err := json.Marshal(v)
+	if err != nil {
+		t.Fatalf("failed to marshal %T: %v", v, err)
+	}
+	return data
+}
+
+func decode[T any](t *testing.T, data []byte) T {
+	t.Helper()
+
+	var v T
+	if err := json.Unmarshal(data, &v); err != nil {
+		t.Fatalf("failed to unmarshal into %T: %v", v, err)
+	}
+	return v
+}
+
+func TestStartGame(t *testing.T) {
+	t.Run("should only start game once", func(t *testing.T) {
+		_, url, slug, _, close := setupJoinedServer(t)
+		defer close()
+
+		request, err := http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/start", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusCreated {
+			t.Fatalf("got %d starting game, want %d", response.StatusCode, http.StatusCreated)
+		}
+
+		request, err = http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/start", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err = http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusBadRequest {
+			t.Fatalf("got %d starting game a second time, want %d", response.StatusCode, http.StatusBadRequest)
+		}
+	})
+}
+
 func setupServer(t *testing.T) (url string, closeFn func()) {
 	gs := NewGameServer()
 	gs.logf = t.Logf
@@ -130,6 +268,46 @@ func setupServer(t *testing.T) (url string, closeFn func()) {
 	return server.URL, func() {
 		server.Close()
 	}
+}
+
+func setupJoinedServer(t *testing.T) (server *httptest.Server, url string, slug string, cl *client, closeFn func()) {
+	t.Helper()
+
+	gs := NewGameServer()
+	gs.logf = t.Logf
+	server = httptest.NewServer(&gs.Mux)
+	t.Cleanup(server.Close)
+	url = server.URL
+
+	request, err := http.NewRequest(http.MethodPost, url+"/rooms", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusCreated {
+		t.Fatalf("got %d creating room, want %d", response.StatusCode, http.StatusCreated)
+	}
+
+	slugBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slug = string(slugBytes)
+
+	cl, _, err = newClient(context.Background(), url, slug, "Alice")
+	if err != nil {
+		t.Fatalf("failed to join room %q: %v", slug, err)
+	}
+
+	closeFn = func() {
+		cl.conn.CloseNow()
+		server.Close()
+	}
+	return server, url, slug, cl, closeFn
 }
 
 type client struct {
