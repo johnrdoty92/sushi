@@ -19,6 +19,11 @@ type GameServer struct {
 	RoomManager rooms.RoomManager
 }
 
+type ClaimItemPayload struct {
+	PlayerId string `json:"playerId"`
+	ItemId   string `json:"itemId"`
+}
+
 func (gs *GameServer) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	slug, err := gs.RoomManager.Create()
 	if err != nil {

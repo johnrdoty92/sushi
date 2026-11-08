@@ -126,7 +126,7 @@ func TestJoinGame(t *testing.T) {
 
 func TestUpdatePlayer(t *testing.T) {
 	t.Run("should update an existing player", func(t *testing.T) {
-		_, url, slug, cl, close := setupJoinedServer(t)
+		_, _, url, slug, cl, close := setupJoinedServer(t)
 		defer close()
 
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -167,7 +167,7 @@ func TestUpdatePlayer(t *testing.T) {
 	})
 
 	t.Run("should fail for a player that doesn't exist", func(t *testing.T) {
-		_, url, slug, _, close := setupJoinedServer(t)
+		_, _, url, slug, _, close := setupJoinedServer(t)
 		defer close()
 
 		body := encode(t, rooms.SubscriberState{
@@ -230,7 +230,7 @@ func decode[T any](t *testing.T, data []byte) T {
 
 func TestStartGame(t *testing.T) {
 	t.Run("should only start game once", func(t *testing.T) {
-		_, url, slug, _, close := setupJoinedServer(t)
+		_, _, url, slug, _, close := setupJoinedServer(t)
 		defer close()
 
 		request, err := http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/start", nil)
@@ -261,6 +261,74 @@ func TestStartGame(t *testing.T) {
 	})
 }
 
+func TestClaimItem(t *testing.T) {
+	t.Run("should claim an item only once", func(t *testing.T) {
+		gs, _, url, slug, cl, close := setupJoinedServer(t)
+		defer close()
+
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		_, message, err := cl.conn.Read(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		idPayload := decode[rooms.SubscriberId](t, message)
+
+		room, err := gs.RoomManager.Get(slug)
+		if err != nil {
+			t.Fatal(err)
+		}
+		room.SetTiming(200*time.Millisecond, 20*time.Millisecond)
+
+		request, err := http.NewRequest(http.MethodPost, url+"/rooms/"+slug+"/start", nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode != http.StatusCreated {
+			t.Fatalf("got %d starting game, want %d", response.StatusCode, http.StatusCreated)
+		}
+
+		state := awaitPayload(t, cl, func(state rooms.RoomState) bool {
+			return len(state.Items) > 0 && state.Items[0].Visible
+		})
+
+		body := encode(t, ClaimItemPayload{
+			PlayerId: idPayload.Id,
+			ItemId:   state.Items[0].Id,
+		})
+		request, err = http.NewRequest(http.MethodPatch, url+"/rooms/"+slug+"/items", bytes.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err = http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode < 200 || response.StatusCode >= 300 {
+			t.Fatalf("got %d claiming item, want a successful status", response.StatusCode)
+		}
+
+		request, err = http.NewRequest(http.MethodPatch, url+"/rooms/"+slug+"/items", bytes.NewReader(body))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err = http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		if response.StatusCode >= 200 && response.StatusCode < 300 {
+			t.Fatalf("got %d claiming an already claimed item, want a failing status", response.StatusCode)
+		}
+	})
+}
+
 func setupServer(t *testing.T) (url string, closeFn func()) {
 	gs := NewGameServer()
 	gs.logf = t.Logf
@@ -270,10 +338,10 @@ func setupServer(t *testing.T) (url string, closeFn func()) {
 	}
 }
 
-func setupJoinedServer(t *testing.T) (server *httptest.Server, url string, slug string, cl *client, closeFn func()) {
+func setupJoinedServer(t *testing.T) (gs *GameServer, server *httptest.Server, url string, slug string, cl *client, closeFn func()) {
 	t.Helper()
 
-	gs := NewGameServer()
+	gs = NewGameServer()
 	gs.logf = t.Logf
 	server = httptest.NewServer(&gs.Mux)
 	t.Cleanup(server.Close)
@@ -307,7 +375,7 @@ func setupJoinedServer(t *testing.T) (server *httptest.Server, url string, slug 
 		cl.conn.CloseNow()
 		server.Close()
 	}
-	return server, url, slug, cl, closeFn
+	return gs, server, url, slug, cl, closeFn
 }
 
 type client struct {

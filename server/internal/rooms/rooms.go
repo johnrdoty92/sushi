@@ -106,6 +106,11 @@ func NewRoom() *Room {
 	}
 }
 
+func (r *Room) SetTiming(gameDuration time.Duration, itemSpawnInterval time.Duration) {
+	r.gameDuration = gameDuration
+	r.itemSpawnInterval = int(itemSpawnInterval.Milliseconds())
+}
+
 func (r *Room) AddSubscriber(name string, handleSlowConnection func()) *Subscriber {
 	sub := &Subscriber{
 		Id:                  uuid.NewString(),
