@@ -37,6 +37,10 @@ type Position struct {
 	Y float64 `json:"y"`
 }
 
+type SubscriberId struct {
+	Id string `json:"id"`
+}
+
 type SubscriberState struct {
 	Id       string   `json:"id"`
 	Name     string   `json:"name"`
@@ -62,6 +66,14 @@ type Subscriber struct {
 	Messages            chan []byte
 	CloseSlowConnection func()
 	position            Position
+}
+
+func (s *Subscriber) GetIdPayload() ([]byte, error) {
+	payload, err := json.Marshal(SubscriberId{Id: s.Id})
+	if err != nil {
+		return nil, err
+	}
+	return payload, nil
 }
 
 type item struct {
