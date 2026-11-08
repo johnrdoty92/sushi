@@ -298,7 +298,7 @@ func (rm *RoomManager) Create() (slug string, err error) {
 			}
 
 		}()
-		rm.rooms[slug] = NewRoom()
+		rm.rooms[slug] = room
 		return slug, nil
 	}
 	return "", fmt.Errorf("No unique slug after %d attempts", maxSlugAttempts)

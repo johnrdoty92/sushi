@@ -2,6 +2,8 @@ package server
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -26,6 +28,54 @@ func (gs *GameServer) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusCreated)
 	fmt.Fprint(w, slug)
+}
+
+func (gs *GameServer) handleStartRoom(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	room, err := gs.RoomManager.Get(slug)
+	if err != nil {
+		http.Error(w, "Failed to find room "+slug, http.StatusNotFound)
+		return
+	}
+
+	if err := room.Start(); err != nil {
+		if errors.Is(err, rooms.ErrGameAlreadyStarted) {
+			http.Error(w, "Game already started", http.StatusBadRequest)
+			return
+		}
+		gs.logf("Error starting game in room %s: %v", slug, err)
+		http.Error(w, "Failed to start game. Please try again.", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+}
+
+func (gs *GameServer) handleUpdatePlayer(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	room, err := gs.RoomManager.Get(slug)
+	if err != nil {
+		http.Error(w, "Failed to find room "+slug, http.StatusNotFound)
+		return
+	}
+
+	var player rooms.SubscriberState
+	if err := json.NewDecoder(r.Body).Decode(&player); err != nil {
+		http.Error(w, "Invalid player", http.StatusBadRequest)
+		return
+	}
+
+	if err := room.UpdatePlayerPosition(player.Id, player.Position.X, player.Position.Y); err != nil {
+		if errors.Is(err, rooms.ErrPlayerNotFound) {
+			http.Error(w, "Player not found", http.StatusNotFound)
+			return
+		}
+		gs.logf("Error updating player %s in room %s: %v", player.Id, slug, err)
+		http.Error(w, "Failed to update player. Please try again.", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (gs *GameServer) handleJoinRoom(w http.ResponseWriter, r *http.Request) {
@@ -105,6 +155,8 @@ func NewGameServer() *GameServer {
 		RoomManager: *rooms.NewRoomManager(),
 	}
 	gs.Mux.HandleFunc("POST /rooms", gs.handleCreateRoom)
+	gs.Mux.HandleFunc("POST /rooms/{slug}/start", gs.handleStartRoom)
+	gs.Mux.HandleFunc("POST /rooms/{slug}/players", gs.handleUpdatePlayer)
 	gs.Mux.HandleFunc("GET /rooms/{slug}", gs.handleJoinRoom)
 	return gs
 }
