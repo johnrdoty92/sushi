@@ -1,5 +1,4 @@
 import { useParams } from "react-router";
-import "../App.css";
 
 function GameRoom() {
   const { slug } = useParams<{ slug: string }>();
