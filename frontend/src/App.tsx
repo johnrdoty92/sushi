@@ -1,10 +1,12 @@
 import { Outlet } from "react-router";
 import "./App.css";
+import { Canvas } from "@/components/3d/Canvas";
 
 function App() {
   return (
-    <main>
+    <main className="flex flex-col">
       <Outlet />
+      <Canvas></Canvas>
     </main>
   );
 }
