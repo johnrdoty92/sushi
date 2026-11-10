@@ -1,11 +1,14 @@
 import { Button as UIButton } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
+import { createRoom } from "@/lib/requests";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState, type ComponentProps } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
+import useSWRMutation from "swr/mutation";
 
 const Button = ({ className, ...props }: ComponentProps<typeof UIButton>) => {
   return <UIButton {...props} className={cn("text-lg px-8 py-6", className)} />;
@@ -23,14 +26,37 @@ const BackButton = () => {
 
 const CreateRoomForm = () => {
   const [name, setName] = useState("");
+  const navigate = useNavigate();
+  const { trigger, isMutating, error } = useSWRMutation("/rooms", createRoom, {
+    onSuccess: (data) => navigate(`rooms/${data}`),
+  });
+
+  const handleCreateRoom = () => {
+    if (isMutating) return;
+    trigger();
+  };
 
   return (
     <form noValidate className="flex flex-col gap-3">
       <Field>
         <FieldLabel>Your Name</FieldLabel>
-        <Input className="text-lg py-6" value={name} onChange={(e) => setName(e.target.value)} />
+        <Input
+          autoComplete="off"
+          className="text-lg py-6"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
       </Field>
-      <Button disabled={!name}>Create</Button>
+      <Button disabled={!name || isMutating} onClick={handleCreateRoom}>
+        {isMutating ? (
+          <div className="flex gap-1">
+            <Spinner />
+            Creating...
+          </div>
+        ) : (
+          "Create"
+        )}
+      </Button>
       <BackButton />
     </form>
   );
@@ -41,7 +67,7 @@ const JoinRoomForm = () => {
   const [roomName, setRoomName] = useState("");
 
   return (
-    <div className="flex flex-col gap-3">
+    <form noValidate className="flex flex-col gap-3">
       <Field>
         <FieldLabel>Your Name</FieldLabel>
         <Input className="text-lg py-6" value={name} onChange={(e) => setName(e.target.value)} />
@@ -56,7 +82,7 @@ const JoinRoomForm = () => {
       </Field>
       <Button disabled={!name || !roomName}>Join</Button>
       <BackButton />
-    </div>
+    </form>
   );
 };
 
