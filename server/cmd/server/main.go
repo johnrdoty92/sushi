@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/johnrdoty92/sushi/server/internal/server"
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -27,8 +28,17 @@ func run(ctx context.Context) error {
 	defer cancel()
 
 	gameServer := server.NewGameServer()
+
+	corsMiddleware := cors.New(cors.Options{
+		AllowedOrigins: []string{os.Getenv("CLIENT_ORIGIN")},
+		AllowedMethods: []string{http.MethodGet, http.MethodPost, http.MethodPatch, http.MethodOptions, http.MethodDelete},
+		AllowedHeaders: []string{"Content-Type"},
+	})
+
+	handler := corsMiddleware.Handler(&gameServer.Mux)
+
 	httpServer := &http.Server{
-		Handler: &gameServer.Mux,
+		Handler: handler,
 		Addr:    net.JoinHostPort(os.Getenv("HOST"), os.Getenv("PORT")),
 	}
 	go func() {
