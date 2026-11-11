@@ -6,7 +6,7 @@ import { createRoom } from "@/lib/requests";
 import { cn } from "@/lib/utils";
 import { ChevronLeftIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState, type ComponentProps } from "react";
+import { useState, type ChangeEventHandler, type ComponentProps } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import useSWRMutation from "swr/mutation";
 
@@ -24,12 +24,22 @@ const BackButton = () => {
   );
 };
 
+const isValidNickname = (input: string): boolean => {
+  const alphanumericRegex = /^[\w\d]*$/i;
+  return alphanumericRegex.test(input);
+};
+
 const CreateRoomForm = () => {
-  const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
   const navigate = useNavigate();
   const { trigger, isMutating, error } = useSWRMutation("/rooms", createRoom, {
-    onSuccess: (data) => navigate(`rooms/${data}`),
+    onSuccess: (data) => navigate(`rooms/${data}?name=${nickname}`),
   });
+
+  const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
+    const input = e.target.value;
+    if (isValidNickname(input)) setNickname(input);
+  };
 
   const handleCreateRoom = () => {
     if (isMutating) return;
@@ -39,15 +49,15 @@ const CreateRoomForm = () => {
   return (
     <form noValidate className="flex flex-col gap-3">
       <Field>
-        <FieldLabel>Your Name</FieldLabel>
+        <FieldLabel>Nickname</FieldLabel>
         <Input
           autoComplete="off"
           className="text-lg py-6"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
+          value={nickname}
+          onChange={handleChange}
         />
       </Field>
-      <Button disabled={!name || isMutating} onClick={handleCreateRoom}>
+      <Button disabled={!nickname || isMutating} onClick={handleCreateRoom}>
         {isMutating ? (
           <div className="flex gap-1">
             <Spinner />
@@ -63,14 +73,19 @@ const CreateRoomForm = () => {
 };
 
 const JoinRoomForm = () => {
-  const [name, setName] = useState("");
+  const [nickname, setNickname] = useState("");
   const [roomName, setRoomName] = useState("");
+
+  const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
+    const input = e.target.value;
+    if (isValidNickname(input)) setNickname(input);
+  };
 
   return (
     <form noValidate className="flex flex-col gap-3">
       <Field>
-        <FieldLabel>Your Name</FieldLabel>
-        <Input className="text-lg py-6" value={name} onChange={(e) => setName(e.target.value)} />
+        <FieldLabel>Nickname</FieldLabel>
+        <Input className="text-lg py-6" value={nickname} onChange={handleChange} />
       </Field>
       <Field>
         <FieldLabel>Room Name</FieldLabel>
@@ -80,7 +95,7 @@ const JoinRoomForm = () => {
           onChange={(e) => setRoomName(e.target.value.toUpperCase())}
         />
       </Field>
-      <Button disabled={!name || !roomName}>Join</Button>
+      <Button disabled={!nickname || !roomName}>Join</Button>
       <BackButton />
     </form>
   );
