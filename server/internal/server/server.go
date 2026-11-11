@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 
 	"github.com/coder/websocket"
@@ -164,7 +165,10 @@ func (gs *GameServer) handleJoinRoom(w http.ResponseWriter, r *http.Request) {
 	})
 	defer room.RemoveSubscriber(sub)
 
-	tempConn, err := websocket.Accept(w, r, nil) // TODO: need to supply options
+	acceptOpts := &websocket.AcceptOptions{
+		OriginPatterns: []string{os.Getenv("CLIENT_ORIGIN")},
+	}
+	tempConn, err := websocket.Accept(w, r, acceptOpts)
 	if err != nil {
 		gs.logf("error accepting websocket connection: %v", err)
 		http.Error(w, "Failed to join room. Please try again", http.StatusInternalServerError)
