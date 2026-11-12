@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { Suspense, useCallback, useImperativeHandle, useRef, type Ref } from "react";
 import { Sushi, type SushiHandle } from "./Sushi";
 import { useFrame } from "@react-three/fiber";
 import { CAMERA_OFFSET } from "@/lib/constants";
@@ -8,12 +8,14 @@ import { useShallow } from "zustand/shallow";
 import useSWRMutation from "swr/mutation";
 import { useParams } from "react-router";
 import { claimItem, type ClaimItemPayload } from "@/lib/requests";
-import { Vector3 } from "three";
+import { MathUtils, Sprite, Vector3 } from "three";
+import { useTexture } from "@react-three/drei";
+import plusOne from "@/assets/plus_one.webp?url";
 
 const temp = new Vector3();
 const THRESHOLD = 1;
 
-const useClaimValidItems = () => {
+const useClaimValidItems = (onSuccess: () => void) => {
   const requestedItemIds = useRef(new Set<string>());
   const itemIds = useConnectionState(useShallow((s) => s.room.items.map((i) => i.id)));
   const playerId = useConnectionState((s) => s.id);
@@ -23,6 +25,7 @@ const useClaimValidItems = () => {
     `/rooms/${slug}/items`,
     (_: string, { arg }: { arg: { slug: string; payload: ClaimItemPayload } }) =>
       claimItem(arg.slug, arg.payload),
+    { onSuccess },
   );
 
   return useCallback(
@@ -50,18 +53,71 @@ const useClaimValidItems = () => {
     [itemIds, slug, playerId],
   );
 };
+interface PlusOneHandle {
+  resetSprite: () => void;
+  updatePosition: (position: Vector3) => void;
+}
+
+const PlusOne = ({ ref }: { ref: Ref<PlusOneHandle> }) => {
+  const texture = useTexture(plusOne);
+  const sprite = useRef<Sprite>(null!);
+  const initialY = 1;
+  const initialOpacity = 0;
+  const targetY = 2;
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      resetSprite() {
+        sprite.current.position.setY(1);
+        sprite.current.material.opacity = 1;
+      },
+      updatePosition({ x, z }) {
+        sprite.current.position.setX(x);
+        sprite.current.position.setZ(z);
+      },
+    }),
+    [],
+  );
+
+  useFrame((_, delta) => {
+    const { y } = sprite.current.position;
+    sprite.current.position.y = MathUtils.damp(y, targetY, 5, delta);
+    const { opacity } = sprite.current.material;
+    sprite.current.material.opacity = MathUtils.damp(opacity, initialOpacity, 3, delta);
+  });
+
+  return (
+    <sprite
+      ref={sprite}
+      material-map={texture}
+      material-transparent
+      material-opacity={initialOpacity}
+      position-y={initialY}
+      scale={0.75}
+    />
+  );
+};
 
 export const MainPlayer = () => {
-  const sushi = useRef<SushiHandle>(null!);
-  const claimValidItems = useClaimValidItems();
+  const sushi = useRef<SushiHandle>(null);
+  const plusOne = useRef<PlusOneHandle>(null);
+  const claimValidItems = useClaimValidItems(() => plusOne.current?.resetSprite());
 
   useFrame(({ camera }, delta) => {
+    if (!sushi.current) return;
     sushi.current.updatePosition(targetPosition, delta);
     const currentPosition = sushi.current.getCurrentPosition();
     camera.position.copy(currentPosition).add(CAMERA_OFFSET);
     camera.lookAt(currentPosition);
     claimValidItems(currentPosition);
+    plusOne.current?.updatePosition(currentPosition);
   });
 
-  return <Sushi ref={sushi} model="" />;
+  return (
+    <Suspense>
+      <PlusOne ref={plusOne} />
+      <Sushi ref={sushi} model="" />
+    </Suspense>
+  );
 };
