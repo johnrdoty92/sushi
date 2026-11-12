@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { Position, SubscriberState } from "./requests";
+import { denormalizePositionValue } from "./utils";
 
 type ItemState = {
   id: string;
@@ -31,7 +32,26 @@ type ConnectionState = typeof defaultState & {
 
 export const useConnectionState = create<ConnectionState>()((set) => ({
   ...defaultState,
-  setRoomState: (state: RoomState) => set(() => ({ room: state })),
+  setRoomState: ({ subscribers, items, timeRemaining }: RoomState) =>
+    set(() => ({
+      room: {
+        subscribers: subscribers.map((s) => ({
+          ...s,
+          position: {
+            x: denormalizePositionValue(s.position.x),
+            y: denormalizePositionValue(s.position.y),
+          },
+        })),
+        items: items.map((i) => ({
+          ...i,
+          position: {
+            x: denormalizePositionValue(i.position.x),
+            y: denormalizePositionValue(i.position.y),
+          },
+        })),
+        timeRemaining,
+      },
+    })),
   setId: (id: string) => set(() => ({ id })),
   reset: () => set(defaultState),
 }));

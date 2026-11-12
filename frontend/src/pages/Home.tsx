@@ -1,18 +1,13 @@
-import { Button as UIButton } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { createRoom } from "@/lib/requests";
-import { cn } from "@/lib/utils";
 import { ChevronLeftIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState, type ChangeEventHandler, type ComponentProps } from "react";
+import { useState, type ChangeEventHandler } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import useSWRMutation from "swr/mutation";
-
-const Button = ({ className, ...props }: ComponentProps<typeof UIButton>) => {
-  return <UIButton {...props} className={cn("text-lg px-8 py-6", className)} />;
-};
 
 const BackButton = () => {
   const setSearchParams = useSearchParams()[1];
@@ -57,7 +52,7 @@ const CreateRoomForm = () => {
           onChange={handleChange}
         />
       </Field>
-      <Button disabled={!nickname || isMutating} onClick={handleCreateRoom}>
+      <Button size="xl" disabled={!nickname || isMutating} onClick={handleCreateRoom}>
         {isMutating ? (
           <div className="flex gap-1">
             <Spinner />
@@ -74,28 +69,43 @@ const CreateRoomForm = () => {
 
 const JoinRoomForm = () => {
   const [nickname, setNickname] = useState("");
-  const [roomName, setRoomName] = useState("");
+  const [roomCode, setRoomCode] = useState("");
+  const navigate = useNavigate();
 
   const handleChange: ChangeEventHandler<HTMLInputElement> = (e) => {
     const input = e.target.value;
     if (isValidNickname(input)) setNickname(input);
   };
 
+  const handleJoin = () => {
+    const [word1, word2] = roomCode.split(" ");
+    if (!word1 || !word2) return; // TODO: add GET to confirm existence of game
+    navigate(`/rooms/${word1}-${word2}?name=${nickname}`.toLowerCase());
+  };
+
   return (
     <form noValidate className="flex flex-col gap-3">
       <Field>
         <FieldLabel>Nickname</FieldLabel>
-        <Input className="text-lg py-6" value={nickname} onChange={handleChange} />
-      </Field>
-      <Field>
-        <FieldLabel>Room Name</FieldLabel>
         <Input
+          autoComplete="off"
           className="text-lg py-6"
-          value={roomName}
-          onChange={(e) => setRoomName(e.target.value.toUpperCase())}
+          value={nickname}
+          onChange={handleChange}
         />
       </Field>
-      <Button disabled={!nickname || !roomName}>Join</Button>
+      <Field>
+        <FieldLabel>Room Code</FieldLabel>
+        <Input
+          autoComplete="off"
+          className="text-lg py-6"
+          value={roomCode}
+          onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+        />
+      </Field>
+      <Button disabled={!nickname || !roomCode} size="xl" onClick={handleJoin}>
+        Join
+      </Button>
       <BackButton />
     </form>
   );
@@ -113,10 +123,15 @@ function Actions() {
     default:
       return (
         <div className="flex gap-3">
-          <Button className="basis-1/2" onClick={() => setSearchParams({ view: "create" })}>
+          <Button
+            className="basis-1/2"
+            size="xl"
+            onClick={() => setSearchParams({ view: "create" })}
+          >
             Create Room
           </Button>
           <Button
+            size="xl"
             className="basis-1/2"
             variant="secondary"
             onClick={() => setSearchParams({ view: "join" })}
