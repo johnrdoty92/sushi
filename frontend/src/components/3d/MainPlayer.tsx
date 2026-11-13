@@ -1,12 +1,12 @@
 import { Suspense, useCallback, useImperativeHandle, useRef, type Ref } from "react";
-import { Sushi, type SushiHandle } from "./Sushi";
+import { getModelFromName, Sushi, type SushiHandle } from "./Sushi";
 import { useFrame } from "@react-three/fiber";
 import { CAMERA_OFFSET } from "@/lib/constants";
 import { targetPosition } from "./Canvas";
 import { useConnectionState } from "@/lib/store";
 import { useShallow } from "zustand/shallow";
 import useSWRMutation from "swr/mutation";
-import { useParams } from "react-router";
+import { useParams, useSearchParams } from "react-router";
 import { claimItem, type ClaimItemPayload } from "@/lib/requests";
 import { MathUtils, Sprite, Vector3 } from "three";
 import { useTexture } from "@react-three/drei";
@@ -55,7 +55,6 @@ const useClaimValidItems = (onSuccess: () => void) => {
 };
 interface PlusOneHandle {
   resetSprite: () => void;
-  updatePosition: (position: Vector3) => void;
 }
 
 const PlusOne = ({ ref }: { ref: Ref<PlusOneHandle> }) => {
@@ -71,10 +70,6 @@ const PlusOne = ({ ref }: { ref: Ref<PlusOneHandle> }) => {
       resetSprite() {
         sprite.current.position.setY(1);
         sprite.current.material.opacity = 1;
-      },
-      updatePosition({ x, z }) {
-        sprite.current.position.setX(x);
-        sprite.current.position.setZ(z);
       },
     }),
     [],
@@ -103,6 +98,7 @@ export const MainPlayer = () => {
   const sushi = useRef<SushiHandle>(null);
   const plusOne = useRef<PlusOneHandle>(null);
   const claimValidItems = useClaimValidItems(() => plusOne.current?.resetSprite());
+  const name = useSearchParams()[0].get("name") ?? "anonymous";
 
   useFrame(({ camera }, delta) => {
     if (!sushi.current) return;
@@ -111,13 +107,13 @@ export const MainPlayer = () => {
     camera.position.copy(currentPosition).add(CAMERA_OFFSET);
     camera.lookAt(currentPosition);
     claimValidItems(currentPosition);
-    plusOne.current?.updatePosition(currentPosition);
   });
 
   return (
     <Suspense>
-      <PlusOne ref={plusOne} />
-      <Sushi ref={sushi} model="" />
+      <Sushi ref={sushi} model={getModelFromName(name)}>
+        <PlusOne ref={plusOne} />
+      </Sushi>
     </Suspense>
   );
 };

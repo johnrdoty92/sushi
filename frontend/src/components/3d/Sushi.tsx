@@ -1,6 +1,20 @@
 import { Vector3, MathUtils, Group } from "three";
-import { KTX2Loader } from "three-stdlib";
-import { useImperativeHandle, useRef, type Ref } from "react";
+import { KTX2Loader, MeshoptDecoder } from "three-stdlib";
+import {
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  type PropsWithChildren,
+  type Ref,
+} from "react";
+import { useGLTF } from "@react-three/drei";
+import { dispose, useThree } from "@react-three/fiber";
+import cucumberRoll from "@/assets/cucumber_roll.glb?url";
+import salmonNigiri from "@/assets/salmon_nigiri.glb?url";
+import salmonRoll from "@/assets/salmon_roll.glb?url";
+import tunaNigiri from "@/assets/tuna_nigiri.glb?url";
+import tunaRoll from "@/assets/tuna_roll.glb?url";
 
 const ktx2Loader = new KTX2Loader();
 ktx2Loader.setTranscoderPath("/basis/");
@@ -9,14 +23,42 @@ const temp = new Vector3();
 const SPEED = 3;
 const THRESHOLD = 0.01;
 
-type Model = string; // TODO: use keys to select different models
+const models = ["cucumberRoll", "salmonNigiri", "salmonRoll", "tunaRoll", "tunaNigiri"] as const;
+
+type Model = (typeof models)[number];
+
+const modelUrls: Record<Model, string> = {
+  cucumberRoll,
+  salmonNigiri,
+  salmonRoll,
+  tunaNigiri,
+  tunaRoll,
+};
+
+export const getModelFromName = (name: string) => {
+  const index = (name[0] ?? "a").charCodeAt(0) % models.length;
+  return models[index];
+};
 
 export interface SushiHandle {
   getCurrentPosition: () => Vector3;
   updatePosition: (targetPosition: Vector3, delta: number) => void;
 }
 
-export const Sushi = ({ model, ref }: { model: Model; ref: Ref<SushiHandle> }) => {
+export const Sushi = ({
+  model,
+  ref,
+  children,
+}: PropsWithChildren<{ model: Model; ref: Ref<SushiHandle> }>) => {
+  const { gl } = useThree();
+  const gltf = useGLTF(modelUrls[model], false, true, (loader) => {
+    loader.setKTX2Loader(ktx2Loader.detectSupport(gl));
+    loader.setMeshoptDecoder(MeshoptDecoder);
+  });
+  const scene = useMemo(() => gltf.scene.clone(), [gltf]);
+
+  useEffect(() => () => dispose(scene), [scene]);
+
   const groupRef = useRef<Group>(null!);
   useImperativeHandle(
     ref,
@@ -39,11 +81,9 @@ export const Sushi = ({ model, ref }: { model: Model; ref: Ref<SushiHandle> }) =
 
   return (
     <group ref={groupRef}>
-      <mesh>
-        <meshNormalMaterial />
-        <sphereGeometry args={[0.5]} />
-      </mesh>
+      <primitive object={scene} />
       <arrowHelper args={[new Vector3(0, 0, 1), new Vector3(), 1, "red", 0.5, 0.5]} />
+      {children}
     </group>
   );
 };
