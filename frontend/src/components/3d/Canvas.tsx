@@ -69,6 +69,7 @@ export const Canvas = ({ children }: PropsWithChildren) => {
   const tapHandle = useRef<TapHandle>(null);
   return (
     <R3FCanvas
+      shadows
       className="bg-radial-[at_50%_25%] from-orange-100 via-amber-100 to-fuchsia-300"
       camera={{ position: CAMERA_OFFSET, fov: 35 }}
       onPointerDown={() => tapHandle.current?.onTap()}

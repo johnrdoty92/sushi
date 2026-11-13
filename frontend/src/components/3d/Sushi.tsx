@@ -1,4 +1,4 @@
-import { Vector3, MathUtils, Group } from "three";
+import { Vector3, MathUtils, Group, Mesh } from "three";
 import { KTX2Loader, MeshoptDecoder } from "three-stdlib";
 import {
   useEffect,
@@ -57,7 +57,14 @@ export const Sushi = ({
   });
   const scene = useMemo(() => gltf.scene.clone(), [gltf]);
 
-  useEffect(() => () => dispose(scene), [scene]);
+  useEffect(() => {
+    scene.traverse((obj) => {
+      if (obj instanceof Mesh) {
+        obj.castShadow = true;
+      }
+    });
+    return () => dispose(scene);
+  }, [scene]);
 
   const groupRef = useRef<Group>(null!);
   useImperativeHandle(
@@ -82,7 +89,6 @@ export const Sushi = ({
   return (
     <group ref={groupRef}>
       <primitive object={scene} />
-      <arrowHelper args={[new Vector3(0, 0, 1), new Vector3(), 1, "red", 0.5, 0.5]} />
       {children}
     </group>
   );
