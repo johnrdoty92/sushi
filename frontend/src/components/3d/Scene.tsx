@@ -9,16 +9,13 @@ import sunset from "@/assets/bambanani_sunset_1k.jpg?url";
 
 export const Scene = () => {
   return (
-    <>
-      <ambientLight intensity={4} />
+    <Suspense>
       <Environment files={sunset} />
       <TargetPositionIndicator />
-      <Suspense>
-        <MainPlayer />
-      </Suspense>
+      <MainPlayer />
       <Items />
       <Players />
       <Board />
-    </>
+    </Suspense>
   );
 };
