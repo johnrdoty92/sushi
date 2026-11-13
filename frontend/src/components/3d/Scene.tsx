@@ -6,16 +6,18 @@ import { Players } from "./Players";
 import { MainPlayer } from "./MainPlayer";
 import { Environment } from "@react-three/drei";
 import sunset from "@/assets/bambanani_sunset_1k.jpg?url";
+import { Light } from "./Light";
 
 export const Scene = () => {
   return (
     <Suspense>
+      <Light />
       <Environment files={sunset} />
       <TargetPositionIndicator />
       <MainPlayer />
       <Items />
       <Players />
-      <Board />
+      <Board receiveShadow />
     </Suspense>
   );
 };
