@@ -1,7 +1,14 @@
 import { useCallback, useImperativeHandle, useRef, type PropsWithChildren, type Ref } from "react";
-import { Canvas as R3FCanvas, useThree } from "@react-three/fiber";
+import { Canvas as R3FCanvas, useFrame, useThree } from "@react-three/fiber";
 import { BOARD_SIZE, CAMERA_OFFSET } from "@/lib/constants";
-import { MathUtils, Plane, Vector3 } from "three";
+import {
+  MathUtils,
+  type Mesh,
+  type MeshBasicMaterial,
+  Plane,
+  type RingGeometry,
+  Vector3,
+} from "three";
 import { normalizePositionValue } from "@/lib/utils";
 import { type SubscriberState, updatePlayer } from "@/lib/requests";
 import { useConnectionState } from "@/lib/store";
@@ -44,6 +51,7 @@ const useUpdatePositionRemote = () => {
 const TapHandler = ({ ref }: { ref: Ref<TapHandle> }) => {
   const get = useThree((s) => s.get);
   const updatePositionRemote = useUpdatePositionRemote();
+  const indicator = useRef<Mesh<RingGeometry, MeshBasicMaterial>>(null!);
 
   const UP = new Vector3(0, 1, 0);
   const plane = new Plane().setFromNormalAndCoplanarPoint(UP, new Vector3());
@@ -57,12 +65,37 @@ const TapHandler = ({ ref }: { ref: Ref<TapHandle> }) => {
         targetPosition.setX(MathUtils.clamp(targetPosition.x, BOARD_SIZE / -2, BOARD_SIZE / 2));
         targetPosition.setY(0);
         targetPosition.setZ(MathUtils.clamp(targetPosition.z, BOARD_SIZE / -2, BOARD_SIZE / 2));
+        indicator.current.position.copy(targetPosition);
+        indicator.current.position.setY(0.01);
+        indicator.current.material.opacity = 1;
+        indicator.current.scale.set(0, 0);
         updatePositionRemote();
       },
     }),
     [get, updatePositionRemote],
   );
-  return <></>;
+
+  useFrame((_, delta) => {
+    const { opacity } = indicator.current.material;
+    indicator.current.material.opacity = MathUtils.damp(opacity, 0, 5, delta);
+    const { x } = indicator.current.scale;
+    const targetScale = MathUtils.damp(x, 1, 5, delta);
+    indicator.current.scale.setX(targetScale);
+    indicator.current.scale.setY(targetScale);
+  });
+
+  return (
+    <mesh
+      ref={indicator}
+      rotation-x={-Math.PI / 2}
+      material-opacity={1}
+      scale={1}
+      position-y={0.01}
+    >
+      <ringGeometry args={[0.75, 1]} />
+      <meshBasicMaterial transparent color="orange" />
+    </mesh>
+  );
 };
 
 export const Canvas = ({ children }: PropsWithChildren) => {
