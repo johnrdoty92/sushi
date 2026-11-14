@@ -24,9 +24,9 @@ export const Board = (props: ThreeElements["mesh"]) => {
         map={diffuse}
         roughnessMap={roughness}
         normalMap={normals}
-        normalScale={[0.5, 1]}
+        normalScale={[0.25, 1]}
         roughness={1}
-        metalness={0.5}
+        metalness={0.25}
       />
       <meshStandardMaterial attach="material-0" color={0x8e6024} />
       <meshStandardMaterial attach="material-4" color={0x61302d} />

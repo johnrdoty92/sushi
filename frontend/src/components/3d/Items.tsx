@@ -5,7 +5,7 @@ import { dispose, type ThreeElements } from "@react-three/fiber";
 import soySauce from "@/assets/soy_sauce.glb?url";
 import { useEffect, useMemo } from "react";
 
-const Item = (props: ThreeElements["group"]) => {
+export const Item = (props: ThreeElements["group"]) => {
   const extendLoader = useExtendLoader();
   const gltf = useGLTF(soySauce, false, true, extendLoader);
   const scene = useMemo(() => gltf.scene.clone(), [gltf]);
@@ -13,7 +13,7 @@ const Item = (props: ThreeElements["group"]) => {
   return (
     <group {...props}>
       <primitive object={scene} />
-      <mesh rotation-x={-Math.PI / 2} position={[-0.09, 0, 0.15]}>
+      <mesh rotation-x={-Math.PI / 2} position={[-0.09, 0.001, 0.15]}>
         <circleGeometry args={[0.35]} />
         <meshBasicMaterial transparent color={0x4c2412} opacity={0.5} />
       </mesh>
