@@ -104,7 +104,9 @@ export const MainPlayer = () => {
     if (!sushi.current) return;
     sushi.current.updatePosition(targetPosition, delta);
     const currentPosition = sushi.current.getCurrentPosition();
-    camera.position.copy(currentPosition).add(CAMERA_OFFSET);
+    const alpha = 1 - Math.exp(-2 * delta);
+    temp.copy(currentPosition).add(CAMERA_OFFSET);
+    camera.position.lerp(temp, alpha);
     camera.lookAt(currentPosition);
     claimValidItems(currentPosition);
   });

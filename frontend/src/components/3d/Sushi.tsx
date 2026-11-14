@@ -1,14 +1,7 @@
 import { Vector3, MathUtils, Group, Mesh } from "three";
-import {
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  type PropsWithChildren,
-  type Ref,
-} from "react";
+import { useEffect, useImperativeHandle, useMemo, useRef, type Ref } from "react";
 import { useGLTF } from "@react-three/drei";
-import { dispose } from "@react-three/fiber";
+import { dispose, type ThreeElements } from "@react-three/fiber";
 import cucumberRoll from "@/assets/cucumber_roll.glb?url";
 import salmonNigiri from "@/assets/salmon_nigiri.glb?url";
 import salmonRoll from "@/assets/salmon_roll.glb?url";
@@ -46,7 +39,8 @@ export const Sushi = ({
   model,
   ref,
   children,
-}: PropsWithChildren<{ model: Model; ref: Ref<SushiHandle> }>) => {
+  ...props
+}: Omit<ThreeElements["group"], "ref"> & { model: Model; ref?: Ref<SushiHandle> }) => {
   const extendLoader = useExtendLoader();
   const gltf = useGLTF(modelUrls[model], false, true, extendLoader);
   const scene = useMemo(() => gltf.scene.clone(), [gltf]);
@@ -81,7 +75,7 @@ export const Sushi = ({
   );
 
   return (
-    <group ref={groupRef}>
+    <group ref={groupRef} {...props}>
       <primitive object={scene} />
       {children}
     </group>
