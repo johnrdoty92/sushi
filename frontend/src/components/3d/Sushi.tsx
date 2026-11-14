@@ -1,5 +1,4 @@
 import { Vector3, MathUtils, Group, Mesh } from "three";
-import { KTX2Loader, MeshoptDecoder } from "three-stdlib";
 import {
   useEffect,
   useImperativeHandle,
@@ -9,15 +8,13 @@ import {
   type Ref,
 } from "react";
 import { useGLTF } from "@react-three/drei";
-import { dispose, useThree } from "@react-three/fiber";
+import { dispose } from "@react-three/fiber";
 import cucumberRoll from "@/assets/cucumber_roll.glb?url";
 import salmonNigiri from "@/assets/salmon_nigiri.glb?url";
 import salmonRoll from "@/assets/salmon_roll.glb?url";
 import tunaNigiri from "@/assets/tuna_nigiri.glb?url";
 import tunaRoll from "@/assets/tuna_roll.glb?url";
-
-const ktx2Loader = new KTX2Loader();
-ktx2Loader.setTranscoderPath("/basis/");
+import { useExtendLoader } from "@/lib/useExtendLoader";
 
 const temp = new Vector3();
 const SPEED = 3;
@@ -50,11 +47,8 @@ export const Sushi = ({
   ref,
   children,
 }: PropsWithChildren<{ model: Model; ref: Ref<SushiHandle> }>) => {
-  const { gl } = useThree();
-  const gltf = useGLTF(modelUrls[model], false, true, (loader) => {
-    loader.setKTX2Loader(ktx2Loader.detectSupport(gl));
-    loader.setMeshoptDecoder(MeshoptDecoder);
-  });
+  const extendLoader = useExtendLoader();
+  const gltf = useGLTF(modelUrls[model], false, true, extendLoader);
   const scene = useMemo(() => gltf.scene.clone(), [gltf]);
 
   useEffect(() => {
