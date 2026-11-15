@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Paper } from "@/components/ui/paper";
 import { Spinner } from "@/components/ui/spinner";
 import { resetRoom, startRoom } from "@/lib/requests";
 import { useConnectionState } from "@/lib/store";
@@ -18,6 +19,8 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import useWebSocket from "react-use-websocket";
 import useSWRMutation from "swr/mutation";
+import { Nigiri } from "./components/Nigiri";
+import { cn } from "cn";
 
 const ResetButton = () => {
   const slug = useParams<{ slug: string }>().slug ?? "";
@@ -85,7 +88,7 @@ const RoomCode = () => {
         />
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Are you sure you want to leave the room?</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Stay</AlertDialogCancel>
@@ -114,12 +117,7 @@ const StartButton = () => {
   };
 
   return (
-    <Button
-      size="xl"
-      onClick={handleStart}
-      disabled={isMutating || !!data}
-      className="absolute bottom-1/6 left-1/2 -translate-x-1/2"
-    >
+    <Button className="w-full" size="xl" onClick={handleStart} disabled={isMutating || !!data}>
       {isMutating ? <Spinner /> : "Start"}
     </Button>
   );
@@ -127,11 +125,16 @@ const StartButton = () => {
 
 const TimeRemaining = ({ time }: { time: number }) => {
   const pad = (input: number) => input.toString().padStart(2, "0");
-  const seconds = pad(Math.floor(time / 1000) % 60);
-  const minutes = pad(Math.floor(time / (1000 * 60)) % 60);
-  const millis = pad((Math.floor(time / 100) * 10) % 100);
+  const seconds = Math.floor(time / 1000) % 60;
+  const minutes = Math.floor(time / (1000 * 60)) % 60;
+  const millis = (Math.floor(time / 100) * 10) % 100;
   return (
-    <div className="absolute font-mono top-1/6 left-1/2 -translate-x-1/2 text-xl">{`${minutes}:${seconds}:${millis}`}</div>
+    <Paper
+      className={cn(
+        "absolute font-mono top-1/6 left-1/2 -translate-x-1/2 text-xl",
+        minutes < 1 && seconds <= 5 ? "text-destructive" : "",
+      )}
+    >{`${pad(minutes)}:${pad(seconds)}:${pad(millis)}`}</Paper>
   );
 };
 
@@ -140,7 +143,17 @@ const Actions = () => {
   const isPendingStart = timeRemaining === -1;
   const isOver = timeRemaining === 0;
   if (isPendingStart) {
-    return <StartButton />;
+    return (
+      <Paper className="absolute bottom-1/6 left-1/2 -translate-x-1/2 flex flex-col gap-6">
+        <Nigiri />
+        <p className="text-center">
+          {window.navigator.maxTouchPoints > 0 ? "Tap" : "Click"} anywhere on the board to move
+          around. Gather up as many soy sauce dishes as you can before time runs out. Press start
+          when everyone is ready!
+        </p>
+        <StartButton />
+      </Paper>
+    );
   } else if (!isOver) {
     return <TimeRemaining time={timeRemaining} />;
   } else {

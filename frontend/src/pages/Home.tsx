@@ -1,13 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Paper } from "@/components/ui/paper";
 import { Spinner } from "@/components/ui/spinner";
 import { createRoom } from "@/lib/requests";
 import { ChevronLeftIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useState, type ChangeEventHandler } from "react";
+import { useState, type ChangeEventHandler, type SubmitEventHandler } from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import useSWRMutation from "swr/mutation";
+import sooshee from "@/assets/sooshee.webp";
+import { Nigiri } from "./components/Nigiri";
 
 const BackButton = () => {
   const setSearchParams = useSearchParams()[1];
@@ -27,7 +30,7 @@ const isValidNickname = (input: string): boolean => {
 const CreateRoomForm = () => {
   const [nickname, setNickname] = useState("");
   const navigate = useNavigate();
-  const { trigger, isMutating, error } = useSWRMutation("/rooms", createRoom, {
+  const { trigger, isMutating } = useSWRMutation("/rooms", createRoom, {
     onSuccess: (data) => navigate(`rooms/${data}?name=${nickname}`),
   });
 
@@ -36,34 +39,38 @@ const CreateRoomForm = () => {
     if (isValidNickname(input)) setNickname(input);
   };
 
-  const handleCreateRoom = () => {
+  const handleCreateRoom: SubmitEventHandler<HTMLFormElement> = (e) => {
+    e.preventDefault();
     if (isMutating) return;
     trigger();
   };
 
   return (
-    <form noValidate className="flex flex-col gap-3">
-      <Field>
-        <FieldLabel>Nickname</FieldLabel>
-        <Input
-          autoComplete="off"
-          className="text-lg py-6"
-          value={nickname}
-          onChange={handleChange}
-        />
-      </Field>
-      <Button size="xl" disabled={!nickname || isMutating} onClick={handleCreateRoom}>
-        {isMutating ? (
-          <div className="flex gap-1">
-            <Spinner />
-            Creating...
-          </div>
-        ) : (
-          "Create"
-        )}
-      </Button>
-      <BackButton />
-    </form>
+    <Paper className="relative">
+      <Nigiri />
+      <form noValidate className="flex flex-col gap-6" onSubmit={handleCreateRoom}>
+        <Field>
+          <FieldLabel>Your Nickname</FieldLabel>
+          <Input
+            autoComplete="off"
+            className="text-lg py-6"
+            value={nickname}
+            onChange={handleChange}
+          />
+        </Field>
+        <Button size="xl" disabled={!nickname || isMutating} type="submit">
+          {isMutating ? (
+            <div className="flex gap-1">
+              <Spinner />
+              Creating...
+            </div>
+          ) : (
+            "Create"
+          )}
+        </Button>
+        <BackButton />
+      </form>
+    </Paper>
   );
 };
 
@@ -77,37 +84,41 @@ const JoinRoomForm = () => {
     if (isValidNickname(input)) setNickname(input);
   };
 
-  const handleJoin = () => {
+  const handleJoin: SubmitEventHandler<HTMLFormElement> = (e) => {
+    e.preventDefault();
     const [word1, word2] = roomCode.split(" ");
     if (!word1 || !word2) return; // TODO: add GET to confirm existence of game
     navigate(`/rooms/${word1}-${word2}?name=${nickname}`.toLowerCase());
   };
 
   return (
-    <form noValidate className="flex flex-col gap-3">
-      <Field>
-        <FieldLabel>Nickname</FieldLabel>
-        <Input
-          autoComplete="off"
-          className="text-lg py-6"
-          value={nickname}
-          onChange={handleChange}
-        />
-      </Field>
-      <Field>
-        <FieldLabel>Room Code</FieldLabel>
-        <Input
-          autoComplete="off"
-          className="text-lg py-6"
-          value={roomCode}
-          onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-        />
-      </Field>
-      <Button disabled={!nickname || !roomCode} size="xl" onClick={handleJoin}>
-        Join
-      </Button>
-      <BackButton />
-    </form>
+    <Paper className="relative">
+      <Nigiri />
+      <form noValidate className="flex flex-col gap-2" onSubmit={handleJoin}>
+        <Field>
+          <FieldLabel>Nickname</FieldLabel>
+          <Input
+            autoComplete="off"
+            className="text-lg py-6"
+            value={nickname}
+            onChange={handleChange}
+          />
+        </Field>
+        <Field>
+          <FieldLabel>Room Code</FieldLabel>
+          <Input
+            autoComplete="off"
+            className="text-lg py-6"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+          />
+        </Field>
+        <Button disabled={!nickname || !roomCode} size="xl" type="submit" className="mt-5">
+          Join
+        </Button>
+        <BackButton />
+      </form>
+    </Paper>
   );
 };
 
@@ -122,23 +133,32 @@ function Actions() {
       return <JoinRoomForm />;
     default:
       return (
-        <div className="flex gap-3">
-          <Button
-            className="basis-1/2"
-            size="xl"
-            onClick={() => setSearchParams({ view: "create" })}
-          >
-            Create Room
-          </Button>
-          <Button
-            size="xl"
-            className="basis-1/2"
-            variant="secondary"
-            onClick={() => setSearchParams({ view: "join" })}
-          >
-            Join Room
-          </Button>
-        </div>
+        <Paper className="relative">
+          <img
+            src={sooshee}
+            alt="sooshee"
+            className="max-w-sm absolute bottom-full left-1/2 -translate-x-1/2 translate-y-6"
+          />
+          <p className="text-center mt-1">Grab all the soy sauce before your friends do!</p>
+          <p className="text-center mb-6">Create or join a room to get started!</p>
+          <div className="flex gap-6">
+            <Button
+              className="flex-1"
+              size="xl"
+              onClick={() => setSearchParams({ view: "create" })}
+            >
+              Create Room
+            </Button>
+            <Button
+              className="flex-1"
+              size="xl"
+              variant="secondary"
+              onClick={() => setSearchParams({ view: "join" })}
+            >
+              Join Room
+            </Button>
+          </div>
+        </Paper>
       );
   }
 }
@@ -146,8 +166,7 @@ function Actions() {
 function Home() {
   return (
     <>
-      <h1 className="absolute top-1/5 text-center text-3xl w-full px-auto">Sushi</h1>
-      <div className="absolute bottom-1/5 left-1/2 -translate-x-1/2">
+      <div className="absolute bottom-1/5 left-1/2 -translate-x-1/2 w-full max-w-lg">
         <Actions />
       </div>
     </>
