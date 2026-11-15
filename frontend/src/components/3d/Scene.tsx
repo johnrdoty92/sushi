@@ -8,7 +8,7 @@ import { Light } from "./Light";
 import sunset from "@/assets/bambanani_sunset_1k.jpg?url";
 import { useLocation } from "react-router";
 import { useFrame } from "@react-three/fiber";
-import { CAMERA_OFFSET } from "@/lib/constants";
+import { CAMERA_HOME_FOCUS, CAMERA_HOME_POSITION } from "@/lib/constants";
 import { Sushi } from "./Sushi";
 import { MathUtils, type Group } from "three";
 
@@ -26,7 +26,8 @@ export const Scene = () => {
       return;
     }
     const alpha = 1 - Math.exp(-3 * delta);
-    camera.position.lerp(CAMERA_OFFSET, alpha);
+    camera.position.lerp(CAMERA_HOME_POSITION, alpha);
+    camera.lookAt(CAMERA_HOME_FOCUS);
     if (scene.current) {
       scene.current.rotation.y += delta / 4;
     }

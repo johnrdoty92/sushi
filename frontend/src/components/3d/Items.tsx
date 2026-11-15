@@ -13,9 +13,9 @@ export const Item = (props: ThreeElements["group"]) => {
   return (
     <group {...props}>
       <primitive object={scene} />
-      <mesh rotation-x={-Math.PI / 2} position={[-0.09, 0.001, 0.15]}>
+      <mesh rotation-x={-Math.PI / 2} position={[0.09, 0.001, 0.15]}>
         <circleGeometry args={[0.35]} />
-        <meshBasicMaterial transparent color={0x4c2412} opacity={0.5} />
+        <meshBasicMaterial transparent color={0x4c2412} opacity={0.25} />
       </mesh>
     </group>
   );
