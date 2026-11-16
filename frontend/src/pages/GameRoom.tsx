@@ -22,6 +22,12 @@ import useSWRMutation from "swr/mutation";
 import { Nigiri } from "./components/Nigiri";
 import { cn } from "cn";
 
+const useRoomCode = () => {
+  const { slug } = useParams<{ slug: string }>();
+  if (!slug) return "";
+  return slug.split("-").join(" ").toUpperCase();
+};
+
 const ResetButton = () => {
   const slug = useParams<{ slug: string }>().slug ?? "";
   const { trigger, isMutating } = useSWRMutation(
@@ -71,12 +77,15 @@ const GameResults = () => {
 };
 
 const RoomCode = () => {
-  const { slug } = useParams<{ slug: string }>();
+  const timeRemaining = useConnectionState((s) => s.room.timeRemaining);
+  const isInProgress = timeRemaining > 0;
   const navigate = useNavigate();
-  if (!slug) return <></>;
-  const roomCode = slug.split("-").join(" ").toUpperCase();
+  const roomCode = useRoomCode();
+
+  if (!roomCode) return <></>;
+
   return (
-    <div className="absolute w-full flex justify-between">
+    <div className="absolute w-full flex justify-between items-center">
       <AlertDialog>
         <AlertDialogTrigger
           render={
@@ -98,10 +107,12 @@ const RoomCode = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      <div className="flex gap-2">
-        <span>Room Code: </span>
-        <span className="font-mono">{roomCode}</span>
-      </div>
+      {isInProgress && (
+        <div className="flex items-center my-2 mr-4 border border-amber-900 rounded-sm bg-white overflow-hidden">
+          <span className="text-sm text-white bg-amber-900 px-2 py-1">Room Code</span>
+          <span className="font-mono text-sm text-amber-800 px-2">{roomCode}</span>
+        </div>
+      )}
     </div>
   );
 };
@@ -131,7 +142,7 @@ const TimeRemaining = ({ time }: { time: number }) => {
   return (
     <Paper
       className={cn(
-        "absolute font-mono top-1/6 left-1/2 -translate-x-1/2 text-xl",
+        "absolute font-mono top-1/6 left-1/2 -translate-x-1/2 text-xl text-amber-900 border-amber-900",
         minutes < 1 && seconds <= 5 ? "text-destructive" : "",
       )}
     >{`${pad(minutes)}:${pad(seconds)}:${pad(millis)}`}</Paper>
@@ -142,14 +153,19 @@ const Actions = () => {
   const timeRemaining = useConnectionState((s) => s.room.timeRemaining);
   const isPendingStart = timeRemaining === -1;
   const isOver = timeRemaining === 0;
+  const roomCode = useRoomCode();
+
   if (isPendingStart) {
     return (
-      <Paper className="absolute bottom-1/6 left-1/2 -translate-x-1/2 flex flex-col gap-6">
+      <Paper className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col gap-4">
         <Nigiri />
+        <p className="text-center">Invite other players with this code:</p>
+        <p className="font-mono text-center bg-white py-3 rounded-lg border border-orange-300">
+          {roomCode}
+        </p>
         <p className="text-center">
-          {window.navigator.maxTouchPoints > 0 ? "Tap" : "Click"} anywhere on the board to move
-          around. Gather up as many soy sauce dishes as you can before time runs out. Press start
-          when everyone is ready!
+          {window.navigator.maxTouchPoints > 0 ? "Tap" : "Click"} on the board to move. The soy
+          sauce as it appears. Press start when everyone is ready!
         </p>
         <StartButton />
       </Paper>
