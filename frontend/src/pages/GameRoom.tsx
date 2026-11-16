@@ -20,6 +20,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router";
 import useWebSocket from "react-use-websocket";
 import useSWRMutation from "swr/mutation";
 import { Nigiri } from "./components/Nigiri";
+import results from "@/assets/results.webp";
 import { cn } from "cn";
 
 const useRoomCode = () => {
@@ -62,14 +63,25 @@ const GameResults = () => {
     <Dialog open={isOver}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Results</DialogTitle>
+          <DialogTitle className="relative">
+            <img src={results} alt="results" className="absolute bottom-full" />
+          </DialogTitle>
         </DialogHeader>
-        {playerScores.map(({ id, name, score }) => (
-          <div className="flex justify-between p-1" key={id}>
-            <span>{name}</span>
-            <span>{score}</span>
+        <div className="flex flex-col rounded-md border border-primary-foreground overflow-hidden">
+          <div className="flex justify-between py-2 px-3 text-white bg-primary-foreground">
+            <span>Player</span>
+            <span>Score</span>
           </div>
-        ))}
+          {playerScores.map(({ id, name, score }) => (
+            <div
+              className="flex justify-between py-2 px-4 odd:bg-fuchsia-200 even:bg-fuchsia-100"
+              key={id}
+            >
+              <span>{name}</span>
+              <span>{score}</span>
+            </div>
+          ))}
+        </div>
         <ResetButton />
       </DialogContent>
     </Dialog>
