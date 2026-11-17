@@ -8,7 +8,7 @@ import { useShallow } from "zustand/shallow";
 import useSWRMutation from "swr/mutation";
 import { useParams, useSearchParams } from "react-router";
 import { claimItem, type ClaimItemPayload } from "@/lib/requests";
-import { MathUtils, Sprite, Vector3 } from "three";
+import { MathUtils, PerspectiveCamera, Sprite, Vector3 } from "three";
 import { useTexture } from "@react-three/drei";
 import plusOne from "@/assets/plus_one.webp?url";
 
@@ -99,6 +99,7 @@ export const MainPlayer = () => {
   const plusOne = useRef<PlusOneHandle>(null);
   const claimValidItems = useClaimValidItems(() => plusOne.current?.resetSprite());
   const name = useSearchParams()[0].get("name") ?? "anonymous";
+  const tempCamera = new PerspectiveCamera();
 
   useFrame(({ camera }, delta) => {
     if (!sushi.current) return;
@@ -107,7 +108,9 @@ export const MainPlayer = () => {
     const alpha = 1 - Math.exp(-2 * delta);
     temp.copy(currentPosition).add(CAMERA_OFFSET);
     camera.position.lerp(temp, alpha);
-    camera.lookAt(currentPosition);
+    tempCamera.position.copy(camera.position);
+    tempCamera.lookAt(currentPosition);
+    camera.quaternion.slerp(tempCamera.quaternion, alpha);
     claimValidItems(currentPosition);
   });
 
