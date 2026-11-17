@@ -8,7 +8,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Paper } from "@/components/ui/paper";
 import { Spinner } from "@/components/ui/spinner";
@@ -16,12 +16,13 @@ import { resetRoom, startRoom } from "@/lib/requests";
 import { useConnectionState } from "@/lib/store";
 import { LogoutSquare02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import useWebSocket from "react-use-websocket";
 import useSWRMutation from "swr/mutation";
 import { Nigiri } from "./components/Nigiri";
 import results from "@/assets/results.webp";
 import { cn } from "cn";
+import { useState, type PropsWithChildren } from "react";
 
 const useRoomCode = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -131,7 +132,7 @@ const RoomCode = () => {
 
 const StartButton = () => {
   const { slug } = useParams<{ slug: string }>();
-  const { trigger, isMutating, error, data } = useSWRMutation(`/rooms/${slug}`, () =>
+  const { trigger, isMutating, data } = useSWRMutation(`/rooms/${slug}`, () =>
     startRoom(slug ?? ""),
   );
 
@@ -189,16 +190,21 @@ const Actions = () => {
   }
 };
 
-const Connection = () => {
+const Connection = ({ children }: PropsWithChildren) => {
   const { slug } = useParams<{ slug: string }>();
   const nickname = useSearchParams()[0].get("name") ?? "anonymous";
   const setId = useConnectionState((s) => s.setId);
   const setRoomState = useConnectionState((s) => s.setRoomState);
   const reset = useConnectionState((s) => s.reset);
+  const [error, setError] = useState("");
 
   useWebSocket(`${import.meta.env.VITE_API_URL}/rooms/${slug}`, {
     queryParams: { name: nickname },
     onClose: reset,
+    onError(event) {
+      console.warn(event);
+      setError("Unable to join room.");
+    },
     onMessage(event) {
       try {
         const message = JSON.parse(event.data);
@@ -213,16 +219,31 @@ const Connection = () => {
     },
   });
 
-  return <></>;
+  if (error) {
+    return (
+      <div className="absolute top-20 left-1/2 -translate-x-1/2 flex flex-col gap-6 bg-red-200 rounded-xl p-6 border border-red-800">
+        <span className="text-center">Error:</span>
+        <span className="text-center font-mono text-red-800">{error}</span>
+        <Link
+          to="/"
+          className={cn(buttonVariants({ size: "xl" }), "border-2 border-primary-foreground")}
+        >
+          Return Home
+        </Link>
+      </div>
+    );
+  }
+  return <>{children}</>;
 };
 
 function GameRoom() {
   return (
     <>
       <RoomCode />
-      <Connection />
-      <Actions />
-      <GameResults />
+      <Connection>
+        <Actions />
+        <GameResults />
+      </Connection>
     </>
   );
 }
