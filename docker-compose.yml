@@ -12,8 +12,10 @@ services:
   frontend:
     environment:
       - VITE_API_URL=http://localhost:5001
+      - VITE_BASE_URL=/
     build:
       context: ./frontend
+      target: dev
     ports:
       - 5173:5173
     volumes:

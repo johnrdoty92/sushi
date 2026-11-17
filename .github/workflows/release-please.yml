@@ -26,4 +26,36 @@ jobs:
         if: ${{ steps.release.outputs['frontend--release_created'] }}
         uses: actions/checkout@v7
 
-# TODO: release to github pages
+      - name: Build Container
+        if: ${{ steps.release.outputs['frontend--release_created'] }}
+        run: |
+          docker build --target build -t frontend --build-arg VITE_API_URL=https://sushi.johndoty.dev --build-arg VITE_BASE_URL=/sushi ./frontend
+
+      - name: Create Container
+        if: ${{ steps.release.outputs['frontend--release_created'] }}
+        run: |
+          docker create --name frontend-build frontend
+
+      - name: Copy build
+        if: ${{ steps.release.outputs['frontend--release_created'] }}
+        run: |
+          docker cp frontend-build:/app/dist ./dist
+
+      - name: Copy index.html as custom 404
+        if: ${{ steps.release.outputs['frontend--release_created'] }}
+        run: cp ./dist/index.html ./dist/404.html
+
+      - name: Setup pages
+        if: ${{ steps.release.outputs['frontend--release_created'] }}
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        if: ${{ steps.release.outputs['frontend--release_created'] }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./dist"
+
+      - name: Deploy to Github Pages
+        id: deployment
+        if: ${{ steps.release.outputs['frontend--release_created'] }}
+        uses: actions/deploy-pages@v4
