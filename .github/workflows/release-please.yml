@@ -16,6 +16,8 @@ jobs:
       pull-requests: write
     outputs:
       frontend_release_created: ${{ steps.release.outputs['frontend--release_created'] }}
+      server_release_created: ${{ steps.release.outputs['server--release_created'] }}
+      server_release_tag_name: ${{ steps.release.outputs['server--tag_name'] }}
     steps:
       - name: Create Release PR or Release
         id: release
@@ -62,3 +64,27 @@ jobs:
       - name: Deploy to Github Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  deploy-server:
+    needs: release
+    if: ${{ needs.release.outputs.server_release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+
+      - name: Build container
+        run: docker build -t server-builder --target build ./server
+
+      - name: Create container
+        run: docker create --name server-build server-builder
+
+      - name: Copy out executable
+        run: docker cp server-build:/app/sooshee ./
+
+      - name: Upload release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ needs.release.outputs.server_release_tag_name }}" ./sooshee --clobber
