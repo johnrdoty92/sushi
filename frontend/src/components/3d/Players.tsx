@@ -21,7 +21,6 @@ const Player = ({ id }: { id: string }) => {
   if (player) position.current.set(player.position.x, 0, player.position.y);
   const name = player?.name ?? "";
 
-
   const sushi = useRef<SushiHandle>(null!);
 
   useFrame((_, delta) => {
@@ -32,12 +31,12 @@ const Player = ({ id }: { id: string }) => {
     <Suspense>
       <Sushi model={getModelFromName(player?.name ?? "")} ref={sushi}>
         {name ? (
-          <Html position-y={1}>
+          <Html position-y={1} zIndexRange={[0, 10]}>
             <div
               className="-translate-x-1/2 px-1 relative z-1 after:absolute after:content-[''] after:w-3 after:h-3 after:bg-inherit after:left-1/2 after:-translate-x-1/2 after:rotate-45 after:-bottom-1 after:-z-1"
-              style={{ backgroundColor: getHueFromName(name)}}
+              style={{ backgroundColor: getHueFromName(name) }}
             >
-              {name.length > 15 ? `${name.substring(0, 15)}...`: name}
+              {name.length > 15 ? `${name.substring(0, 15)}...` : name}
             </div>
           </Html>
         ) : null}

@@ -37,8 +37,17 @@ const ResetButton = () => {
     (_: string, { arg }: { arg: { slug: string } }) => resetRoom(arg.slug),
   );
   return (
-    <Button size="xl" disabled={isMutating} onClick={() => trigger({ slug })}>
+    <Button className="flex-1" size="xl" disabled={isMutating} onClick={() => trigger({ slug })}>
       Rematch
+    </Button>
+  );
+};
+
+const LeaveRoomButton = () => {
+  const navigate = useNavigate();
+  return (
+    <Button className="flex-1" size="xl" onClick={() => navigate("/")} variant="destructive">
+      Quit
     </Button>
   );
 };
@@ -58,11 +67,11 @@ const GameResults = () => {
       name: p.name,
       score: tally.get(p.id) ?? 0,
     }))
-    .sort((a, b) => a.score - b.score);
+    .sort((a, b) => b.score - a.score);
 
   return (
     <Dialog open={isOver}>
-      <DialogContent>
+      <DialogContent showCloseButton={false}>
         <DialogHeader>
           <DialogTitle className="relative">
             <img src={results} alt="results" className="absolute bottom-full" />
@@ -83,7 +92,10 @@ const GameResults = () => {
             </div>
           ))}
         </div>
-        <ResetButton />
+        <div className="flex gap-4">
+          <ResetButton />
+          <LeaveRoomButton />
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -113,8 +125,10 @@ const RoomCode = () => {
             <AlertDialogTitle>Are you sure you want to leave the room?</AlertDialogTitle>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Stay</AlertDialogCancel>
-            <AlertDialogAction variant="destructive" onClick={() => navigate("/")}>
+            <AlertDialogCancel variant="default" size="lg">
+              Stay
+            </AlertDialogCancel>
+            <AlertDialogAction size="lg" variant="destructive" onClick={() => navigate("/")}>
               Leave
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -155,7 +169,7 @@ const TimeRemaining = ({ time }: { time: number }) => {
   return (
     <Paper
       className={cn(
-        "absolute font-mono top-1/6 left-1/2 -translate-x-1/2 text-xl text-amber-900 border-amber-900",
+        "absolute font-mono top-1/6 left-1/2 -translate-x-1/2 text-xl text-amber-900 border-amber-900 z-20",
         minutes < 1 && seconds <= 5 ? "text-destructive" : "",
       )}
     >{`${pad(minutes)}:${pad(seconds)}:${pad(millis)}`}</Paper>
