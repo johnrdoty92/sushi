@@ -124,7 +124,7 @@ const RoomCode = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to leave the room?</AlertDialogTitle>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-row justify-end">
             <AlertDialogCancel variant="default" size="lg">
               Stay
             </AlertDialogCancel>
@@ -184,15 +184,15 @@ const Actions = () => {
 
   if (isPendingStart) {
     return (
-      <Paper className="absolute bottom-5 left-1/2 -translate-x-1/2 flex flex-col gap-4">
+      <Paper className="max-w-lg w-[min(100%-2rem,800px)] mx-auto absolute left-0 right-0 bottom-3 flex flex-col gap-2 sm:gap-4">
         <Nigiri />
-        <p className="text-center">Invite other players with this code:</p>
-        <p className="font-mono text-center bg-white py-3 rounded-lg border border-orange-300">
+        <p className="text-center mt-1">Invite other players with this code:</p>
+        <p className="font-mono text-center bg-white py-1.5 sm:py-3 rounded-lg border border-orange-300">
           {roomCode}
         </p>
-        <p className="text-center">
-          {window.navigator.maxTouchPoints > 0 ? "Tap" : "Click"} on the board to move. The soy
-          sauce as it appears. Press start when everyone is ready!
+        <p className="text-center leading-tight sm:leading-normal">
+          {window.navigator.maxTouchPoints > 0 ? "Tap" : "Click"} to move. Collect the soy
+          sauce until time runs out. Press start when everyone is ready!
         </p>
         <StartButton />
       </Paper>

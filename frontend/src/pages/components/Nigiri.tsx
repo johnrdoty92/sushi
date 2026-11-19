@@ -5,7 +5,7 @@ export const Nigiri = () => {
     <img
       src={nigiri}
       alt="nigiri"
-      className="absolute w-30 right-0 top-0 -translate-y-1/2 translate-x-1/3 rotate-5"
+      className="absolute w-30 right-0 top-0 -translate-y-3/5 rotate-5"
     />
   );
 };

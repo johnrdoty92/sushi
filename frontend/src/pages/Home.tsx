@@ -48,7 +48,7 @@ const CreateRoomForm = () => {
   return (
     <Paper className="relative">
       <Nigiri />
-      <form noValidate className="flex flex-col gap-6" onSubmit={handleCreateRoom}>
+      <form noValidate className="flex flex-col gap-3 sm:gap-6" onSubmit={handleCreateRoom}>
         <Field>
           <FieldLabel>Your Nickname</FieldLabel>
           <Input
@@ -137,11 +137,14 @@ function Actions() {
           <img
             src={sooshee}
             alt="sooshee"
-            className="max-w-sm absolute bottom-full left-1/2 -translate-x-1/2 translate-y-6"
+            className="max-w-3/4 sm:max-w-sm absolute bottom-full left-1/2 -translate-x-1/2 translate-y-6"
           />
-          <p className="text-center mt-1">Grab all the soy sauce before your friends do!</p>
-          <p className="text-center mb-6">Create or join a room to get started!</p>
-          <div className="flex gap-6">
+          <p className="text-center mt-3 mb-3 sm:mb-6 sm:mt-1 leading-tight sm:leading-normal">
+            Play with your friends to see who can collect the most soy sauce!
+            <br />
+            Create or join a room to get started!
+          </p>
+          <div className="flex flex-col min-[320px]:flex-row mb-1 gap-3 sm:gap-6">
             <Button
               className="flex-1"
               size="xl"
@@ -166,7 +169,7 @@ function Actions() {
 function Home() {
   return (
     <>
-      <div className="absolute bottom-1/5 left-1/2 -translate-x-1/2 w-full max-w-lg">
+      <div className="absolute bottom-2 sm:bottom-1/10 left-1/2 -translate-x-1/2 w-full max-w-lg">
         <Actions />
       </div>
     </>
