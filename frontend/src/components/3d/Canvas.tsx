@@ -88,7 +88,7 @@ const TapHandler = ({ ref }: { ref: Ref<TapHandle> }) => {
     <mesh
       ref={indicator}
       rotation-x={-Math.PI / 2}
-      material-opacity={1}
+      material-opacity={0}
       scale={1}
       position-y={0.01}
     >
