@@ -133,6 +133,7 @@
 
 html {
   height: 100dvh;
+  overscroll-behavior: none;
 }
 
 body,
