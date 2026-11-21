@@ -56,3 +56,5 @@ go.work
 go.work.sum
 
 .vscode/
+
+.DS_store
