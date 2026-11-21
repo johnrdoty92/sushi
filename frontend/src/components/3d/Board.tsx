@@ -1,18 +1,20 @@
 import { BOARD_SIZE } from "@/lib/constants";
-import { useTexture } from "@react-three/drei";
+import { useKTX2 } from "@react-three/drei";
 import { useLoader, type ThreeElements } from "@react-three/fiber";
-import diff from "@/assets/japanese_cedar_planks_diff_1k.jpg?url";
+import diff from "@/assets/cedar_planks_diff.ktx2";
 import norm from "@/assets/japanese_cedar_planks_nor_gl_1k.exr?url";
 import rough from "@/assets/japanese_cedar_planks_rough_1k.exr?url";
 import { EXRLoader } from "three-stdlib";
 import { RepeatWrapping } from "three";
+import { useLayoutEffect } from "react";
 
 export const Board = (props: ThreeElements["mesh"]) => {
-  const diffuse = useTexture(diff, (t) => {
-    t.wrapS = RepeatWrapping;
-    t.wrapT = RepeatWrapping;
-    t.repeat.set(2, 2);
-  });
+  const diffuse = useKTX2(diff);
+  useLayoutEffect(() => {
+    diffuse.wrapS = RepeatWrapping;
+    diffuse.wrapT = RepeatWrapping;
+    diffuse.repeat.set(2, 2);
+  }, [diffuse]);
   const normals = useLoader(EXRLoader, norm);
   const roughness = useLoader(EXRLoader, rough);
 
