@@ -88,12 +88,11 @@ const TapHandler = ({ ref }: { ref: Ref<TapHandle> }) => {
     <mesh
       ref={indicator}
       rotation-x={-Math.PI / 2}
-      material-opacity={0}
       scale={1}
       position-y={0.01}
     >
       <ringGeometry args={[0.75, 1]} />
-      <meshBasicMaterial transparent color="orange" />
+      <meshBasicMaterial transparent color="orange" opacity={0} />
     </mesh>
   );
 };
