@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.1](https://github.com/johnrdoty92/sushi/compare/frontend-v1.0.0...frontend-v1.0.1) (2026-11-21)
+
+
+### Bug Fixes
+
+* adjust z-index and button styles ([71d2c05](https://github.com/johnrdoty92/sushi/commit/71d2c05e8986232378a05a32be221c8bda1decba))
+* disable overscroll ([26b4c6d](https://github.com/johnrdoty92/sushi/commit/26b4c6d6372a33792d44da94a9f68d37727b86af))
+* make views responsive ([1b96dcd](https://github.com/johnrdoty92/sushi/commit/1b96dcdc380332ea1081d865cc6e77d7abaed207))
+* optimize board diff ([f1f736d](https://github.com/johnrdoty92/sushi/commit/f1f736d4fd73418dddc5a3af7a75c22b326bfd4e))
+* optimize model textures ([733e1ed](https://github.com/johnrdoty92/sushi/commit/733e1ed7ce8eb88d4743309bc51f3107ab39af91))
+* prevent image drag ([7314973](https://github.com/johnrdoty92/sushi/commit/7314973b317c68568b15b009d433763e483cdda7))
+* tap indicator starting opacity ([0d33719](https://github.com/johnrdoty92/sushi/commit/0d337193aae855d1fb5c6ba2952b72b3888c6b5d))
+
 ## 1.0.0 (2026-11-18)
 
 
