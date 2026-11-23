@@ -123,11 +123,11 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply text-foreground bg-radial-[at_50%_25%] from-orange-100 via-amber-100 to-fuchsia-300;
   }
 
   html {
-    @apply font-sans;
+    @apply font-sans bg-fuchsia-300;
   }
 }
 

@@ -85,12 +85,7 @@ const TapHandler = ({ ref }: { ref: Ref<TapHandle> }) => {
   });
 
   return (
-    <mesh
-      ref={indicator}
-      rotation-x={-Math.PI / 2}
-      scale={1}
-      position-y={0.01}
-    >
+    <mesh ref={indicator} rotation-x={-Math.PI / 2} scale={1} position-y={0.01}>
       <ringGeometry args={[0.75, 1]} />
       <meshBasicMaterial transparent color="orange" opacity={0} />
     </mesh>
@@ -102,7 +97,6 @@ export const Canvas = ({ children }: PropsWithChildren) => {
   return (
     <R3FCanvas
       shadows
-      className="bg-radial-[at_50%_25%] from-orange-100 via-amber-100 to-fuchsia-300"
       camera={{ position: CAMERA_OFFSET, fov: 35 }}
       onPointerDown={() => tapHandle.current?.onTap()}
     >
