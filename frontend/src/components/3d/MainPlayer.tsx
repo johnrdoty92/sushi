@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useImperativeHandle, useRef, type Ref } from "react";
+import { useCallback, useImperativeHandle, useRef, type Ref } from "react";
 import { getModelFromName, Sushi, type SushiHandle } from "./Sushi";
 import { useFrame } from "@react-three/fiber";
 import { CAMERA_OFFSET } from "@/lib/constants";
@@ -115,10 +115,8 @@ export const MainPlayer = () => {
   });
 
   return (
-    <Suspense>
-      <Sushi ref={sushi} model={getModelFromName(name)}>
-        <PlusOne ref={plusOne} />
-      </Sushi>
-    </Suspense>
+    <Sushi ref={sushi} model={getModelFromName(name)}>
+      <PlusOne ref={plusOne} />
+    </Sushi>
   );
 };

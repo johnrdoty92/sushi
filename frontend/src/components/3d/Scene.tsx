@@ -37,31 +37,29 @@ export const Scene = () => {
     }
   });
   return (
-    <Suspense>
-      <group ref={scene}>
-        <Light />
-        <Environment files={sunset} />
-        {isHome ? (
-          <>
-            <Sushi model="tunaRoll" position={[0.33, 0, -1]} />
-            <Sushi model="salmonRoll" position={[-0.33, 0, -1]} />
-            <Sushi model="cucumberRoll" position={[-0.33, 0, -1.66]} />
-            <Sushi model="salmonRoll" position={[0.33, 0, -1.66]} />
-            <Sushi model="tunaNigiri" position-z={-0.33} rotation-y={Math.PI / 4} />
-            <Sushi model="salmonNigiri" position-z={0.33} rotation-y={Math.PI / 4} />
-            <Sushi model="tunaNigiri" position-z={0.9} rotation-y={Math.PI / 4} />
-            <Sushi model="salmonNigiri" position-z={1.55} rotation-y={5 * (Math.PI / 4)} />
-            <Item position-z={2.33} />
-          </>
-        ) : (
-          <>
-            <MainPlayer />
-            <Items />
-            <Players />
-          </>
-        )}
-        <Board receiveShadow />
-      </group>
-    </Suspense>
+    <group ref={scene}>
+      <Light />
+      <Environment files={sunset} />
+      {isHome ? (
+        <>
+          <Sushi model="tunaRoll" position={[0.33, 0, -1]} />
+          <Sushi model="salmonRoll" position={[-0.33, 0, -1]} />
+          <Sushi model="cucumberRoll" position={[-0.33, 0, -1.66]} />
+          <Sushi model="salmonRoll" position={[0.33, 0, -1.66]} />
+          <Sushi model="tunaNigiri" position-z={-0.33} rotation-y={Math.PI / 4} />
+          <Sushi model="salmonNigiri" position-z={0.33} rotation-y={Math.PI / 4} />
+          <Sushi model="tunaNigiri" position-z={0.9} rotation-y={Math.PI / 4} />
+          <Sushi model="salmonNigiri" position-z={1.55} rotation-y={5 * (Math.PI / 4)} />
+          <Item position-z={2.33} />
+        </>
+      ) : (
+        <>
+          <MainPlayer />
+          <Items />
+          <Players />
+        </>
+      )}
+      <Board receiveShadow />
+    </group>
   );
 };
