@@ -120,3 +120,5 @@ export const MainPlayer = () => {
     </Sushi>
   );
 };
+
+useTexture.preload(plusOne);

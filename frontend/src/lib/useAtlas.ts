@@ -7,8 +7,7 @@ import { useLayoutEffect } from "react";
 const material = new MeshPhysicalMaterial();
 
 export const useAtlas = () => {
-  const texture = useKTX2(atlas);
-  const normals = useKTX2(atlasNormal);
+  const [texture, normals] = useKTX2([atlas, atlasNormal], "/basis/");
 
   useLayoutEffect(() => {
     material.map = texture;
@@ -20,3 +19,6 @@ export const useAtlas = () => {
 
   return material;
 };
+
+useKTX2.preload(atlas, "/basis/");
+useKTX2.preload(atlasNormal, "/basis/");

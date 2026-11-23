@@ -8,7 +8,7 @@ import { RepeatWrapping } from "three";
 import { useLayoutEffect } from "react";
 
 export const Board = (props: ThreeElements["mesh"]) => {
-  const textures = useKTX2([diff, norm, rough]);
+  const textures = useKTX2([diff, norm, rough], "/basis/");
 
   useLayoutEffect(() => {
     for (const texture of textures) {
@@ -37,3 +37,7 @@ export const Board = (props: ThreeElements["mesh"]) => {
     </mesh>
   );
 };
+
+useKTX2.preload(diff, "/basis/");
+useKTX2.preload(norm, "/basis/");
+useKTX2.preload(rough, "/basis/");

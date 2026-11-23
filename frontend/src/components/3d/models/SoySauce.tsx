@@ -14,8 +14,7 @@ type GLTFResult = GLTF & {
 
 export function SoySauce(props: ThreeElements["group"]) {
   const { nodes } = useGLTF(soySauce) as unknown as GLTFResult;
-  const orm = useKTX2(ormKtx2);
-  const diff = useKTX2(diffKtx2);
+  const [orm, diff] = useKTX2([ormKtx2, diffKtx2], "/basis/");
   return (
     <group {...props} dispose={null}>
       <mesh
@@ -31,3 +30,5 @@ export function SoySauce(props: ThreeElements["group"]) {
 }
 
 useGLTF.preload(soySauce);
+useKTX2.preload(ormKtx2, "/basis/");
+useKTX2.preload(diffKtx2, "/basis/");

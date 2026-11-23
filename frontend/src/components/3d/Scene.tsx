@@ -1,4 +1,4 @@
-import { Suspense, useRef } from "react";
+import { useRef } from "react";
 import { Board } from "@/components/3d/Board";
 import { Item, Items } from "@/components/3d/Items";
 import { Players } from "@/components/3d/Players";
