@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/johnrdoty92/sushi/compare/sushi-api/v1.1.0...sushi-api/v1.1.1) (2026-11-24)
+
+
+### Bug Fixes
+
+* add error messages for connection failures ([94200a6](https://github.com/johnrdoty92/sushi/commit/94200a6a53a5fd9be028debda4e29cadc5efa247))
+
 ## [1.1.0](https://github.com/johnrdoty92/sushi/compare/sushi-api/v1.0.0...sushi-api/v1.1.0) (2026-11-24)
 
 
