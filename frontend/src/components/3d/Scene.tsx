@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Board } from "@/components/3d/Board";
-import { Item, Items } from "@/components/3d/Items";
+import { Items } from "@/components/3d/Items";
 import { Players } from "@/components/3d/Players";
 import { MainPlayer } from "@/components/3d/MainPlayer";
 import { Environment } from "@react-three/drei";
@@ -9,8 +9,13 @@ import sunset from "@/assets/bambanani_sunset_1k.jpg?url";
 import { useLocation } from "react-router";
 import { useFrame } from "@react-three/fiber";
 import { CAMERA_HOME_FOCUS, CAMERA_HOME_POSITION } from "@/lib/constants";
-import { Sushi } from "./Sushi";
-import { MathUtils, PerspectiveCamera, type Group } from "three";
+import { type Camera, MathUtils, PerspectiveCamera, type Group } from "three";
+import { CucumberRoll, SalmonNigiri, SalmonRoll, SoySauce, TunaNigiri, TunaRoll } from "./models";
+
+const offsetCameraCenter = (camera: Camera) => {
+  camera.projectionMatrix.elements[9] = -0.3;
+  camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+};
 
 export const Scene = () => {
   const { pathname } = useLocation();
@@ -19,6 +24,7 @@ export const Scene = () => {
   const tempCamera = new PerspectiveCamera();
 
   useFrame(({ camera }, delta) => {
+    offsetCameraCenter(camera);
     if (!isHome) {
       if (scene.current) {
         const { y } = scene.current.rotation;
@@ -42,15 +48,15 @@ export const Scene = () => {
       <Environment files={sunset} />
       {isHome ? (
         <>
-          <Sushi model="tunaRoll" position={[0.33, 0, -1]} />
-          <Sushi model="salmonRoll" position={[-0.33, 0, -1]} />
-          <Sushi model="cucumberRoll" position={[-0.33, 0, -1.66]} />
-          <Sushi model="salmonRoll" position={[0.33, 0, -1.66]} />
-          <Sushi model="tunaNigiri" position-z={-0.33} rotation-y={Math.PI / 4} />
-          <Sushi model="salmonNigiri" position-z={0.33} rotation-y={Math.PI / 4} />
-          <Sushi model="tunaNigiri" position-z={0.9} rotation-y={Math.PI / 4} />
-          <Sushi model="salmonNigiri" position-z={1.55} rotation-y={5 * (Math.PI / 4)} />
-          <Item position-z={2.33} />
+          <TunaRoll position={[0.33, 0, -1]} />
+          <SalmonRoll position={[-0.33, 0, -1]} />
+          <CucumberRoll position={[-0.33, 0, -1.66]} />
+          <SalmonRoll position={[0.33, 0, -1.66]} />
+          <TunaNigiri position-z={-0.33} rotation-y={Math.PI / 4} />
+          <SalmonNigiri position-z={0.33} rotation-y={Math.PI / 4} />
+          <TunaNigiri position-z={0.9} rotation-y={Math.PI / 4} />
+          <SalmonNigiri position-z={1.55} rotation-y={5 * (Math.PI / 4)} />
+          <SoySauce position-z={2.33} />
         </>
       ) : (
         <>

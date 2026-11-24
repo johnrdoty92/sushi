@@ -55,3 +55,15 @@ export const useConnectionState = create<ConnectionState>()((set) => ({
   setId: (id: string) => set(() => ({ id })),
   reset: () => set(defaultState),
 }));
+
+type InitializedState = {
+  isInitialized: boolean;
+  dispatchInitialized: () => void;
+};
+
+export const useInitializedState = create<InitializedState>()((set) => ({
+  isInitialized: false,
+  dispatchInitialized() {
+    set({ isInitialized: true });
+  },
+}));

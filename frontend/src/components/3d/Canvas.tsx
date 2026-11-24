@@ -97,7 +97,7 @@ export const Canvas = ({ children }: PropsWithChildren) => {
   return (
     <R3FCanvas
       shadows
-      camera={{ position: CAMERA_OFFSET, fov: 35 }}
+      camera={{ position: CAMERA_OFFSET, fov: 35, rotation: [Math.PI / 2, 0, 0] }}
       onPointerDown={() => tapHandle.current?.onTap()}
     >
       <TapHandler ref={tapHandle} />
