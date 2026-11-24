@@ -15,6 +15,92 @@ import (
 	"github.com/johnrdoty92/sushi/server/internal/rooms"
 )
 
+func TestIndex(t *testing.T) {
+	url, close := setupServer(t)
+	defer close()
+
+	request, _ := http.NewRequest(http.MethodGet, url, nil)
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("got %v status, want %v", response.StatusCode, http.StatusOK)
+	}
+
+	body, err := io.ReadAll(response.Body)
+	var roomCount RoomCount
+	if err := json.Unmarshal(body, &roomCount); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	got := roomCount.RunningGames
+	want := 0
+	if got != want {
+		t.Fatalf("got %d, want %d", got, want)
+	}
+
+	// Create and join game
+	request, _ = http.NewRequest(http.MethodPost, url+"/rooms", nil)
+	response, err = http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	defer response.Body.Close()
+	slugBytes, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	slug := string(slugBytes)
+
+	cl, response, err := newClient(context.Background(), url, slug, "Alice")
+	if cl == nil {
+		t.Fatal(err)
+	}
+
+	request, _ = http.NewRequest(http.MethodGet, url, nil)
+	response, err = http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("got %v status, want %v", response.StatusCode, http.StatusOK)
+	}
+
+	body, err = io.ReadAll(response.Body)
+	if err := json.Unmarshal(body, &roomCount); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	got = roomCount.RunningGames
+	want = 1
+	if got != want {
+		t.Fatalf("got %d, want %d", got, want)
+	}
+
+	cl.conn.CloseNow()
+	request, _ = http.NewRequest(http.MethodGet, url, nil)
+	response, err = http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("got %v status, want %v", response.StatusCode, http.StatusOK)
+	}
+
+	body, err = io.ReadAll(response.Body)
+	if err := json.Unmarshal(body, &roomCount); err != nil {
+		t.Fatalf("failed to unmarshal: %v", err)
+	}
+	got = roomCount.RunningGames
+	want = 0
+	if got != want {
+		t.Fatalf("got %d, want %d", got, want)
+	}
+}
+
 func TestCreateGame(t *testing.T) {
 	t.Run("should create game entry", func(t *testing.T) {
 		url, close := setupServer(t)

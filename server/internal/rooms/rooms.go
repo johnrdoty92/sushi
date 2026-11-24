@@ -125,8 +125,17 @@ func (r *Room) AddSubscriber(name string, handleSlowConnection func()) *Subscrib
 	return sub
 }
 
+func (r *Room) GetSubscriberCount() int {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return len(r.subscribers)
+}
+
 func (r *Room) RemoveSubscriber(subscriber *Subscriber) {
 	delete(r.subscribers, subscriber)
+	if r.cleanup != nil {
+		r.cleanup()
+	}
 }
 
 func (r *Room) Publish(message []byte) {
@@ -277,6 +286,12 @@ func NewRoomManager() *RoomManager {
 	}
 }
 
+func (rm *RoomManager) GetCount() int {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	return len(rm.rooms)
+}
+
 func (rm *RoomManager) Create() (slug string, err error) {
 	rm.mu.Lock()
 	defer rm.mu.Unlock()
@@ -317,4 +332,10 @@ func (rm *RoomManager) Get(slug string) (*Room, error) {
 		return nil, ErrRoomNotFound
 	}
 	return room, nil
+}
+
+func (rm *RoomManager) Delete(slug string) {
+	rm.mu.Lock()
+	defer rm.mu.Unlock()
+	delete(rm.rooms, slug)
 }

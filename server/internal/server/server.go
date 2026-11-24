@@ -25,6 +25,18 @@ type ClaimItemPayload struct {
 	ItemId   string `json:"itemId"`
 }
 
+type RoomCount struct {
+	RunningGames int `json:"runningGames"`
+}
+
+func (gs *GameServer) handleIndex(w http.ResponseWriter, r *http.Request) {
+	roomCount := RoomCount{RunningGames: gs.RoomManager.GetCount()}
+	data, _ := json.Marshal(roomCount)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
+}
+
 func (gs *GameServer) handleCreateRoom(w http.ResponseWriter, r *http.Request) {
 	slug, err := gs.RoomManager.Create()
 	if err != nil {
@@ -163,7 +175,12 @@ func (gs *GameServer) handleJoinRoom(w http.ResponseWriter, r *http.Request) {
 			conn.Close(websocket.StatusPolicyViolation, "connection too slow to keep up with messages")
 		}
 	})
-	defer room.RemoveSubscriber(sub)
+	defer func() {
+		room.RemoveSubscriber(sub)
+		if room.GetSubscriberCount() == 0 {
+			gs.RoomManager.Delete(slug)
+		}
+	}()
 
 	acceptOpts := &websocket.AcceptOptions{
 		OriginPatterns: []string{os.Getenv("CLIENT_ORIGIN")},
@@ -214,6 +231,7 @@ func NewGameServer() *GameServer {
 		logf:        log.Printf,
 		RoomManager: *rooms.NewRoomManager(),
 	}
+	gs.Mux.HandleFunc("GET /{$}", gs.handleIndex)
 	gs.Mux.HandleFunc("POST /rooms", gs.handleCreateRoom)
 	gs.Mux.HandleFunc("POST /rooms/{slug}/start", gs.handleStartRoom)
 	gs.Mux.HandleFunc("POST /rooms/{slug}/reset", gs.handleResetRoom)
