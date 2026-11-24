@@ -149,6 +149,23 @@ func (gs *GameServer) handleUpdatePlayer(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
+func (gs *GameServer) handleCheckRoom(w http.ResponseWriter, r *http.Request) {
+	name := r.URL.Query().Get("name")
+	if name == "" {
+		http.Error(w, "Must provide name", http.StatusBadRequest)
+		return
+	}
+
+	slug := r.PathValue("slug")
+	_, err := gs.RoomManager.Get(slug)
+	if err != nil {
+		http.Error(w, "Failed to find room "+slug, http.StatusNotFound)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
 func (gs *GameServer) handleJoinRoom(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 	if name == "" {
@@ -238,5 +255,6 @@ func NewGameServer() *GameServer {
 	gs.Mux.HandleFunc("PATCH /rooms/{slug}/items", gs.handleClaimItem)
 	gs.Mux.HandleFunc("POST /rooms/{slug}/players", gs.handleUpdatePlayer)
 	gs.Mux.HandleFunc("GET /rooms/{slug}", gs.handleJoinRoom)
+	gs.Mux.HandleFunc("GET /rooms/{slug}/check", gs.handleCheckRoom)
 	return gs
 }

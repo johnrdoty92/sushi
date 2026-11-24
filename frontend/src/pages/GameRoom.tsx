@@ -12,13 +12,14 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Paper } from "@/components/ui/paper";
 import { Spinner } from "@/components/ui/spinner";
-import { resetRoom, startRoom } from "@/lib/requests";
+import { checkRoom, resetRoom, startRoom } from "@/lib/requests";
 import { useConnectionState } from "@/lib/store";
 import { LogoutSquare02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
-import useWebSocket from "react-use-websocket";
+import useWebSocket, { ReadyState } from "react-use-websocket";
 import useSWRMutation from "swr/mutation";
+import useSWR from "swr";
 import { Nigiri } from "./components/Nigiri";
 import results from "@/assets/results.webp";
 import { cn } from "cn";
@@ -191,8 +192,8 @@ const Actions = () => {
           {roomCode}
         </p>
         <p className="text-center leading-tight sm:leading-normal">
-          {window.navigator.maxTouchPoints > 0 ? "Tap" : "Click"} to move. Collect the soy
-          sauce until time runs out. Press start when everyone is ready!
+          {window.navigator.maxTouchPoints > 0 ? "Tap" : "Click"} to move. Collect the soy sauce
+          until time runs out. Press start when everyone is ready!
         </p>
         <StartButton />
       </Paper>
@@ -206,13 +207,15 @@ const Actions = () => {
 
 const Connection = ({ children }: PropsWithChildren) => {
   const { slug } = useParams<{ slug: string }>();
-  const nickname = useSearchParams()[0].get("name") ?? "anonymous";
+  const nickname = useSearchParams()[0].get("name") ?? "";
   const setId = useConnectionState((s) => s.setId);
   const setRoomState = useConnectionState((s) => s.setRoomState);
   const reset = useConnectionState((s) => s.reset);
   const [error, setError] = useState("");
 
-  useWebSocket(`${import.meta.env.VITE_API_URL}/rooms/${slug}`, {
+  const check = useSWR(`${slug}-${nickname}`, () => checkRoom(slug ?? "", nickname));
+
+  const { readyState } = useWebSocket(`${import.meta.env.VITE_API_URL}/rooms/${slug}`, {
     queryParams: { name: nickname },
     onClose: reset,
     onError(event) {
@@ -232,12 +235,22 @@ const Connection = ({ children }: PropsWithChildren) => {
       }
     },
   });
+  const isAttemptingConnection =
+    readyState === ReadyState.UNINSTANTIATED || readyState === ReadyState.CONNECTING;
 
-  if (error) {
+  if (isAttemptingConnection) {
     return (
-      <div className="absolute top-20 left-1/2 -translate-x-1/2 flex flex-col gap-6 bg-red-200 rounded-xl p-6 border border-red-800">
+      <Spinner className="absolute top-0 bottom-0 my-auto left-0 right-0 mx-auto size-10 text-fuchsia-100" />
+    );
+  } else if (error || check.error) {
+    const message =
+      check.error && "body" in check.error && typeof check.error.body === "string"
+        ? check.error.body
+        : error || "An error occurred";
+    return (
+      <div className="absolute bottom-20 left-1/2 -translate-x-1/2 flex flex-col gap-6 bg-red-200 rounded-xl p-6 border border-red-800">
         <span className="text-center">Error:</span>
-        <span className="text-center font-mono text-red-800">{error}</span>
+        <span className="text-center font-mono text-red-800">{message}</span>
         <Link
           to="/"
           className={cn(buttonVariants({ size: "xl" }), "border-2 border-primary-foreground")}

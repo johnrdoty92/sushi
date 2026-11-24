@@ -51,6 +51,10 @@ function roomPath(slug: string, suffix = ""): string {
   return `/rooms/${encodeURIComponent(slug)}${suffix}`;
 }
 
+export async function checkRoom(slug: string, name: string): Promise<void> {
+  await request(roomPath(slug, `/check?name=${name}`));
+}
+
 export async function createRoom(): Promise<string> {
   const response = await request("/rooms", { method: "POST" });
   return (await response.text()).trim();
