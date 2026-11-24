@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/johnrdoty92/sushi/compare/frontend-v1.0.1...frontend-v1.0.2) (2026-11-24)
+
+
+### Bug Fixes
+
+* add error messages for connection failures ([94200a6](https://github.com/johnrdoty92/sushi/commit/94200a6a53a5fd9be028debda4e29cadc5efa247))
+
 ## [1.0.1](https://github.com/johnrdoty92/sushi/compare/frontend-v1.0.0...frontend-v1.0.1) (2026-11-24)
 
 
