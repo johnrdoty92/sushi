@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/johnrdoty92/sushi/compare/sushi-api/v1.0.0...sushi-api/v1.1.0) (2026-11-24)
+
+
+### Features
+
+* add cleanup to server ([ea5fe66](https://github.com/johnrdoty92/sushi/commit/ea5fe66099ca6e7c474197d152b86bbb9680264f))
+
 ## 1.0.0 (2026-11-18)
 
 
